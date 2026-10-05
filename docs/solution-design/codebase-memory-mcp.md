@@ -73,7 +73,7 @@ flowchart TB
     CYP --> STORE
     SEM --> STORE
     STORE --- DB
-    STORE <-- "export/import (zstd)" --> ART
+    STORE <-->|"export/import (zstd)"| ART
     UI --> STORE
 ```
 
@@ -135,13 +135,13 @@ Lớp thứ hai chạy trên kết quả tree-sitter: dùng import graph + regis
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Agent as "AI agent (MCP client)"
-    participant MCP as "mcp.c (stdio JSON-RPC)"
-    participant PL as "pipeline.c"
-    participant EX as "internal/cbm + lsp"
-    participant GB as "graph_buffer"
-    participant ST as "store.c (SQLite)"
-    participant W as "watcher.c"
+    participant Agent as AI agent (MCP client)
+    participant MCP as mcp.c (stdio JSON-RPC)
+    participant PL as pipeline.c
+    participant EX as internal/cbm + lsp
+    participant GB as graph_buffer
+    participant ST as store.c (SQLite)
+    participant W as watcher.c
 
     Agent->>MCP: initialize
     MCP-->>Agent: capabilities (+ auto-index nếu bật)

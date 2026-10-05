@@ -64,7 +64,7 @@ flowchart TB
     CLOUD["api.comfy.org<br/>(API nodes)"]
 
     FE -- "HTTP /prompt, /object_info ..." --> PS
-    FE <-- "WebSocket: status, progress, executed" --> PS
+    FE <-->|"WebSocket: status, progress, executed"| PS
     EXT --> PS
     PS --> MW
     PS --> APP
@@ -131,14 +131,14 @@ Trong `execute()`: kiểm tra cache; với node có `check_lazy_status` thì ch�
 ```mermaid
 sequenceDiagram
     autonumber
-    participant C as "Frontend / API client"
-    participant S as "PromptServer (server.py)"
-    participant V as "validate_prompt (execution.py)"
-    participant Q as "PromptQueue"
-    participant W as "prompt_worker thread"
-    participant E as "PromptExecutor"
-    participant N as "Node (nodes.py / comfy_extras)"
-    participant M as "comfy/ (model_management, samplers)"
+    participant C as Frontend / API client
+    participant S as PromptServer (server.py)
+    participant V as validate_prompt (execution.py)
+    participant Q as PromptQueue
+    participant W as prompt_worker thread
+    participant E as PromptExecutor
+    participant N as Node (nodes.py / comfy_extras)
+    participant M as comfy/ (model_management, samplers)
 
     C->>S: GET /ws?clientId=... (mở WebSocket)
     S-->>C: status {queue info, sid}

@@ -76,7 +76,7 @@ flowchart TB
     EXT["API / SaaS bên ngoài"]
 
     UI -- "REST /rest/*" --> SRV
-    UI <-- "push events" --> PUSH
+    UI <-->|"push events"| PUSH
     EXT -- "HTTP /webhook/*" --> WH
     SRV --> WR
     WH --> WR
@@ -94,7 +94,7 @@ flowchart TB
     LNC --> NL
     NL --> NODES
     CTX -- "Code node" --> TRM
-    TRM <-- "WebSocket" --> RUNNER
+    TRM <-->|"WebSocket"| RUNNER
     LC --> DB
     DB --- PG
     NB --> EXT
@@ -164,14 +164,14 @@ Giải thích:
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Ext as "Hệ thống ngoài"
-    participant WH as "Webhook process (webhooks/)"
-    participant WR as "WorkflowRunner"
-    participant DB as "DB (TypeORM)"
-    participant Q as "Bull queue (Redis)"
-    participant WK as "Worker: JobProcessor"
-    participant WE as "WorkflowExecute (n8n-core)"
-    participant N as "Node (nodes-base)"
+    participant Ext as Hệ thống ngoài
+    participant WH as Webhook process (webhooks/)
+    participant WR as WorkflowRunner
+    participant DB as DB (TypeORM)
+    participant Q as Bull queue (Redis)
+    participant WK as Worker JobProcessor
+    participant WE as WorkflowExecute (n8n-core)
+    participant N as Node (nodes-base)
 
     Ext->>WH: POST /webhook/{path}
     WH->>WH: tìm webhook đã đăng ký (live-webhooks)
