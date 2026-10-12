@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Luồng mua bán nội bộ</title>
+<meta name="description" content="Sơ đồ luồng base giao dịch mua bán liên công ty (Inter-Company) trên ERPNext: chứng từ, liên kết đối ứng và bút toán GL.">
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --text: #1d1d1f;
+    --muted: #5f6368;
+    --border: #d9d9d4;
+    --lane-a: #e8f1fb;
+    --lane-a-stroke: #2f6fb3;
+    --lane-b: #eaf6ee;
+    --lane-b-stroke: #2e8b57;
+    --inter: #c2581c;
+    --flow: #6b6b6b;
+    --code-bg: #f0f0ec;
+    --hl: #fff4d6;
+    --on-badge: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141416;
+      --surface: #1e1f22;
+      --text: #ececec;
+      --muted: #a3a6ab;
+      --border: #3a3b3f;
+      --lane-a: #17263a;
+      --lane-a-stroke: #6ea8e6;
+      --lane-b: #16291f;
+      --lane-b-stroke: #63c08d;
+      --inter: #f0915a;
+      --flow: #9a9a9a;
+      --code-bg: #2a2b2f;
+      --hl: #3a3220;
+    --on-badge: #111214;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141416;
+    --surface: #1e1f22;
+    --text: #ececec;
+    --muted: #a3a6ab;
+    --border: #3a3b3f;
+    --lane-a: #17263a;
+    --lane-a-stroke: #6ea8e6;
+    --lane-b: #16291f;
+    --lane-b-stroke: #63c08d;
+    --inter: #f0915a;
+    --flow: #9a9a9a;
+    --code-bg: #2a2b2f;
+    --hl: #3a3220;
+    --on-badge: #111214;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.7rem; margin: 0 0 6px; }
+  h2 { font-size: 1.2rem; margin: 40px 0 12px; }
+  p.lead { color: var(--muted); margin: 0 0 24px; max-width: 760px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .86em;
+         background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+
+  .diagram-wrap {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px; overflow-x: auto;
+  }
+  .diagram-wrap svg { display: block; width: 100%; min-width: 760px; height: auto; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 12px 4px 0; color: var(--muted); font-size: .88rem; }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend i { display: inline-block; width: 28px; height: 0; border-top: 2px solid var(--flow); }
+  .legend i.inter { border-top: 3px solid var(--inter); }
+  .legend i.dash { border-top: 2px dashed var(--muted); }
+
+  /* SVG styling */
+  .lane-a { fill: var(--lane-a); stroke: var(--lane-a-stroke); stroke-width: 1; }
+  .lane-b { fill: var(--lane-b); stroke: var(--lane-b-stroke); stroke-width: 1; }
+  .lane-title { font: 700 17px system-ui, sans-serif; fill: var(--text); }
+  .lane-sub { font: 12px system-ui, sans-serif; fill: var(--muted); }
+  .node rect { fill: var(--surface); stroke: var(--border); stroke-width: 1.2; transition: stroke .15s; }
+  .node.a rect { stroke: var(--lane-a-stroke); }
+  .node.b rect { stroke: var(--lane-b-stroke); }
+  .node { cursor: pointer; }
+  .node:hover rect, .node.active rect { stroke-width: 3; }
+  .node .num { font: 700 12px system-ui, sans-serif; fill: var(--on-badge); }
+  .node.a .badge { fill: var(--lane-a-stroke); }
+  .node.b .badge { fill: var(--lane-b-stroke); }
+  .node .t1 { font: 700 15px system-ui, sans-serif; fill: var(--text); }
+  .node .t2 { font: 12.5px system-ui, sans-serif; fill: var(--muted); }
+  .node .t3 { font: 11.5px ui-monospace, Menlo, Consolas, monospace; fill: var(--text); }
+  .band rect { fill: var(--code-bg); stroke: var(--border); }
+  .flow { stroke: var(--flow); stroke-width: 2; fill: none; }
+  .inter { stroke: var(--inter); stroke-width: 3; fill: none; }
+  .recon { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 6 5; fill: none; }
+  .alabel { font: 600 11.5px system-ui, sans-serif; fill: var(--inter); text-anchor: middle; }
+  .alabel.m { fill: var(--muted); }
+  .alabel.f { fill: var(--muted); font: 10px ui-monospace, Menlo, Consolas, monospace; }
+
+  /* Cards */
+  .steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; border-left: 4px solid var(--border); transition: background .2s;
+  }
+  .card.a { border-left-color: var(--lane-a-stroke); }
+  .card.b { border-left-color: var(--lane-b-stroke); }
+  .card.active { background: var(--hl); }
+  .card h3 { margin: 0 0 4px; font-size: 1rem; }
+  .card .who { font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
+  .card ul { margin: 6px 0 0; padding-left: 18px; }
+  .card li { margin: 2px 0; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--surface);
+          border: 1px solid var(--border); border-radius: 10px; overflow: hidden; font-size: .92rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--code-bg); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  .table-wrap { overflow-x: auto; }
+  .table-wrap table { min-width: 620px; }
+
+  .note { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+  .note li { margin: 6px 0; }
+  .theme-toggle {
+    float: right; background: var(--surface); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: .85rem;
+  }
+</style>
+</head>
+<body>
+<main>
+  <button class="theme-toggle" id="themeBtn" type="button">Đổi giao diện</button>
+  <h1>Luồng base giao dịch mua bán nội bộ trên ERPNext</h1>
+  <p class="lead">
+    Hai công ty con cùng nằm trong một site ERPNext. <b>Công ty A</b> bán hàng cho <b>Công ty B</b>.
+    Mỗi chứng từ ở bên này có một chứng từ đối ứng ở bên kia, được tạo bằng nút
+    <code>Create → Inter Company …</code> và liên kết qua các trường <code>inter_company_*_reference</code>.
+    Bấm vào từng ô trong sơ đồ để xem chi tiết bước tương ứng.
+  </p>
+
+  <div class="diagram-wrap">
+    <svg viewBox="0 0 1000 680" role="img" aria-labelledby="dgTitle dgDesc">
+      <title id="dgTitle">Sơ đồ luồng mua bán liên công ty ERPNext</title>
+      <desc id="dgDesc">Công ty B lập đơn mua, công ty A nhận đơn bán, xuất kho, xuất hóa đơn; công ty B nhập kho, nhận hóa đơn mua; hai bên thanh toán và đối chiếu.</desc>
+      <defs>
+        <marker id="arFlow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--flow)"/>
+        </marker>
+        <marker id="arInter" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--inter)"/>
+        </marker>
+        <marker id="arRecon" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
+        </marker>
+      </defs>
+
+      <!-- Lanes -->
+      <rect class="lane-b" x="40" y="10" width="380" height="550" rx="14"/>
+      <rect class="lane-a" x="580" y="10" width="380" height="550" rx="14"/>
+      <text class="lane-title" x="230" y="40" text-anchor="middle">Công ty B — BÊN MUA</text>
+      <text class="lane-sub" x="230" y="60" text-anchor="middle">Supplier nội bộ = Công ty A</text>
+      <text class="lane-title" x="770" y="40" text-anchor="middle">Công ty A — BÊN BÁN</text>
+      <text class="lane-sub" x="770" y="60" text-anchor="middle">Customer nội bộ = Công ty B</text>
+
+      <!-- Flow arrows inside each company -->
+      <path class="flow" d="M770 174 V208" marker-end="url(#arFlow)"/>
+      <path class="flow" d="M770 294 V328" marker-end="url(#arFlow)"/>
+      <path class="flow" d="M770 414 V448" marker-end="url(#arFlow)"/>
+      <path class="flow" d="M230 294 V328" marker-end="url(#arFlow)"/>
+      <path class="flow" d="M230 414 V448" marker-end="url(#arFlow)"/>
+      <path class="flow" d="M230 174 V208" marker-end="url(#arFlow)"/>
+      <path class="flow" d="M230 534 V588" marker-end="url(#arFlow)"/>
+      <path class="flow" d="M770 534 V588" marker-end="url(#arFlow)"/>
+
+      <!-- Inter-company arrows -->
+      <path class="inter" d="M400 132 H597" marker-end="url(#arInter)"/>
+      <text class="alabel" x="500" y="114">Create → Inter Company</text>
+      <text class="alabel" x="500" y="128">Order</text>
+      <text class="alabel f" x="500" y="152">inter_company_order_reference</text>
+
+      <path class="inter" d="M600 252 H403" marker-end="url(#arInter)"/>
+      <text class="alabel" x="500" y="234">Create → Inter Company</text>
+      <text class="alabel" x="500" y="248">Receipt</text>
+      <text class="alabel f" x="500" y="272">inter_company_reference</text>
+
+      <path class="inter" d="M600 372 H403" marker-end="url(#arInter)"/>
+      <text class="alabel" x="500" y="354">Create → Inter Company</text>
+      <text class="alabel" x="500" y="368">Invoice</text>
+      <text class="alabel f" x="500" y="392">inter_company_invoice_reference</text>
+
+      <path class="recon" d="M403 492 H597" marker-start="url(#arRecon)" marker-end="url(#arRecon)"/>
+      <text class="alabel m" x="500" y="476">Đối chiếu công nợ</text>
+      <text class="alabel m" x="500" y="512">hoặc Inter Company JE</text>
+
+      <!-- Nodes: Company B (left) -->
+      <g class="node b" data-step="1" tabindex="0">
+        <rect x="60" y="90" width="340" height="84" rx="10"/>
+        <circle class="badge" cx="82" cy="112" r="12"/><text class="num" x="82" y="116" text-anchor="middle">1</text>
+        <text class="t1" x="102" y="117">Purchase Order</text>
+        <text class="t2" x="78" y="141">Đơn mua hàng gửi NCC nội bộ (Cty A)</text>
+        <text class="t3" x="78" y="161">Không phát sinh GL</text>
+      </g>
+      <g class="node b" data-step="4" tabindex="0">
+        <rect x="60" y="210" width="340" height="84" rx="10"/>
+        <circle class="badge" cx="82" cy="232" r="12"/><text class="num" x="82" y="236" text-anchor="middle">4</text>
+        <text class="t1" x="102" y="237">Purchase Receipt</text>
+        <text class="t2" x="78" y="261">Nhập kho Cty B (từ Delivery Note của A)</text>
+        <text class="t3" x="78" y="281">Dr Stock · Cr Stock Recv. Not Billed</text>
+      </g>
+      <g class="node b" data-step="6" tabindex="0">
+        <rect x="60" y="330" width="340" height="84" rx="10"/>
+        <circle class="badge" cx="82" cy="352" r="12"/><text class="num" x="82" y="356" text-anchor="middle">6</text>
+        <text class="t1" x="102" y="357">Purchase Invoice</text>
+        <text class="t2" x="78" y="381">Hóa đơn mua — ghi nhận phải trả Cty A</text>
+        <text class="t3" x="78" y="401">Dr SRBNB (+VAT) · Cr Creditors</text>
+      </g>
+      <g class="node b" data-step="7" tabindex="0">
+        <rect x="60" y="450" width="340" height="84" rx="10"/>
+        <circle class="badge" cx="82" cy="472" r="12"/><text class="num" x="82" y="476" text-anchor="middle">7</text>
+        <text class="t1" x="102" y="477">Payment Entry — Pay</text>
+        <text class="t2" x="78" y="501">Cty B chi tiền trả Cty A</text>
+        <text class="t3" x="78" y="521">Dr Creditors · Cr Bank</text>
+      </g>
+
+      <!-- Nodes: Company A (right) -->
+      <g class="node a" data-step="2" tabindex="0">
+        <rect x="600" y="90" width="340" height="84" rx="10"/>
+        <circle class="badge" cx="622" cy="112" r="12"/><text class="num" x="622" y="116" text-anchor="middle">2</text>
+        <text class="t1" x="642" y="117">Sales Order</text>
+        <text class="t2" x="618" y="141">Đơn bán hàng cho KH nội bộ (Cty B)</text>
+        <text class="t3" x="618" y="161">Không phát sinh GL</text>
+      </g>
+      <g class="node a" data-step="3" tabindex="0">
+        <rect x="600" y="210" width="340" height="84" rx="10"/>
+        <circle class="badge" cx="622" cy="232" r="12"/><text class="num" x="622" y="236" text-anchor="middle">3</text>
+        <text class="t1" x="642" y="237">Delivery Note</text>
+        <text class="t2" x="618" y="261">Xuất kho Cty A giao cho Cty B</text>
+        <text class="t3" x="618" y="281">Dr COGS · Cr Stock</text>
+      </g>
+      <g class="node a" data-step="5" tabindex="0">
+        <rect x="600" y="330" width="340" height="84" rx="10"/>
+        <circle class="badge" cx="622" cy="352" r="12"/><text class="num" x="622" y="356" text-anchor="middle">5</text>
+        <text class="t1" x="642" y="357">Sales Invoice</text>
+        <text class="t2" x="618" y="381">Hóa đơn bán — ghi nhận phải thu Cty B</text>
+        <text class="t3" x="618" y="401">Dr Debtors · Cr Sales (+VAT)</text>
+      </g>
+      <g class="node a" data-step="8" tabindex="0">
+        <rect x="600" y="450" width="340" height="84" rx="10"/>
+        <circle class="badge" cx="622" cy="472" r="12"/><text class="num" x="622" y="476" text-anchor="middle">8</text>
+        <text class="t1" x="642" y="477">Payment Entry — Receive</text>
+        <text class="t2" x="618" y="501">Cty A thu tiền từ Cty B</text>
+        <text class="t3" x="618" y="521">Dr Bank · Cr Debtors</text>
+      </g>
+
+      <!-- Bottom band -->
+      <g class="node band" data-step="9" tabindex="0">
+        <rect x="40" y="590" width="920" height="76" rx="12"/>
+        <text class="t1" x="500" y="620" text-anchor="middle">9 · Đối chiếu &amp; hợp nhất (công ty mẹ)</text>
+        <text class="t2" x="500" y="645" text-anchor="middle">AR/AP theo KH–NCC nội bộ · Consolidated Financial Statement · loại trừ doanh thu, giá vốn, công nợ nội bộ</text>
+      </g>
+    </svg>
+  </div>
+  <div class="legend">
+    <span><i></i>Luồng chứng từ trong cùng một công ty</span>
+    <span><i class="inter"></i>Chứng từ đối ứng tạo sang công ty kia (inter-company)</span>
+    <span><i class="dash"></i>Đối chiếu, không tạo chứng từ tự động</span>
+  </div>
+
+  <h2>Chi tiết từng bước</h2>
+  <div class="steps" id="steps">
+    <div class="card b" data-step="1">
+      <div class="who">Công ty B · Buying</div>
+      <h3>1. Purchase Order</h3>
+      <ul>
+        <li>Supplier = Công ty A (đã tick <code>Is Internal Supplier</code>).</li>
+        <li>Chọn kho nhận của Cty B, submit đơn.</li>
+        <li>Sau khi submit: <code>Create → Inter Company Order</code> để sinh Sales Order bên A.</li>
+      </ul>
+    </div>
+    <div class="card a" data-step="2">
+      <div class="who">Công ty A · Selling</div>
+      <h3>2. Sales Order</h3>
+      <ul>
+        <li>Được tạo ở trạng thái Draft, Customer = Công ty B, item/qty/rate copy từ PO.</li>
+        <li>Kiểm tra lại kho xuất, giá bán nội bộ, thuế rồi submit.</li>
+        <li>Liên kết hai chiều qua <code>inter_company_order_reference</code>.</li>
+        <li>Cũng có thể đi ngược lại: A lập SO trước rồi tạo Inter Company Order sang PO của B.</li>
+      </ul>
+    </div>
+    <div class="card a" data-step="3">
+      <div class="who">Công ty A · Stock</div>
+      <h3>3. Delivery Note</h3>
+      <ul>
+        <li>Tạo từ Sales Order, xuất hàng khỏi kho Cty A theo giá vốn (valuation rate).</li>
+        <li>GL: <code>Dr Cost of Goods Sold</code> / <code>Cr Stock In Hand</code>.</li>
+        <li>Submit xong: <code>Create → Inter Company Receipt</code>.</li>
+      </ul>
+    </div>
+    <div class="card b" data-step="4">
+      <div class="who">Công ty B · Stock</div>
+      <h3>4. Purchase Receipt</h3>
+      <ul>
+        <li>Được sinh từ Delivery Note của A, kéo theo item và số lượng; liên kết với PO của B.</li>
+        <li>GL: <code>Dr Stock In Hand</code> / <code>Cr Stock Received But Not Billed</code>.</li>
+        <li>Trường <code>inter_company_reference</code> trỏ về Delivery Note.</li>
+      </ul>
+    </div>
+    <div class="card a" data-step="5">
+      <div class="who">Công ty A · Accounts</div>
+      <h3>5. Sales Invoice</h3>
+      <ul>
+        <li>Tạo từ Sales Order hoặc Delivery Note.</li>
+        <li>GL: <code>Dr Debtors (Cty B)</code> / <code>Cr Sales</code>, <code>Cr Output VAT</code>.</li>
+        <li>Submit xong: <code>Create → Inter Company Invoice</code>.</li>
+      </ul>
+    </div>
+    <div class="card b" data-step="6">
+      <div class="who">Công ty B · Accounts</div>
+      <h3>6. Purchase Invoice</h3>
+      <ul>
+        <li>Được sinh từ Sales Invoice của A: số tiền, thuế, số hóa đơn NCC khớp nhau.</li>
+        <li>Liên kết thêm với PO / PR của B để khớp 3 chiều (PO–PR–PI).</li>
+        <li>GL: <code>Dr Stock Received But Not Billed</code>, <code>Dr Input VAT</code> / <code>Cr Creditors (Cty A)</code>.</li>
+        <li>Liên kết qua <code>inter_company_invoice_reference</code>.</li>
+      </ul>
+    </div>
+    <div class="card b" data-step="7">
+      <div class="who">Công ty B · Accounts</div>
+      <h3>7. Payment Entry (Pay)</h3>
+      <ul>
+        <li>Party type Supplier = Công ty A, phân bổ vào Purchase Invoice.</li>
+        <li>GL: <code>Dr Creditors</code> / <code>Cr Bank</code>.</li>
+      </ul>
+    </div>
+    <div class="card a" data-step="8">
+      <div class="who">Công ty A · Accounts</div>
+      <h3>8. Payment Entry (Receive)</h3>
+      <ul>
+        <li>Party type Customer = Công ty B, phân bổ vào Sales Invoice.</li>
+        <li>GL: <code>Dr Bank</code> / <code>Cr Debtors</code>.</li>
+        <li>Thay cho bước 7–8 khi bù trừ không dùng tiền: Journal Entry loại <code>Inter Company Journal Entry</code>, rồi <code>Make Inter Company Journal Entry</code> để sinh bút toán đối ứng bên kia.</li>
+      </ul>
+    </div>
+    <div class="card" data-step="9">
+      <div class="who">Kế toán tổng hợp / Công ty mẹ</div>
+      <h3>9. Đối chiếu &amp; hợp nhất</h3>
+      <ul>
+        <li>So sánh <code>Accounts Receivable</code> (A, lọc KH Cty B) với <code>Accounts Payable</code> (B, lọc NCC Cty A): số dư phải bằng nhau.</li>
+        <li>Báo cáo <code>Consolidated Financial Statement</code> chạy trên công ty mẹ (cây công ty theo Parent Company).</li>
+        <li>Loại trừ doanh thu / giá vốn / công nợ nội bộ và lãi chưa thực hiện trong tồn kho khi lập BCTC hợp nhất. Thường làm bằng bút toán điều chỉnh, không có sẵn trong luồng base.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Thiết lập trước khi chạy luồng</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Đối tượng</th><th>Ở công ty</th><th>Cấu hình cần có</th></tr></thead>
+      <tbody>
+        <tr><td>Company</td><td>A, B</td><td>Cả hai cùng site; nên đặt chung <code>Parent Company</code> để dùng báo cáo hợp nhất. Mỗi công ty có Chart of Accounts, kho, Default Receivable/Payable/Stock accounts riêng.</td></tr>
+        <tr><td>Customer "Công ty B"</td><td>dùng ở A</td><td>Tick <code>Is Internal Customer</code>, <code>Represents Company</code> = B, bảng <code>Allowed To Transact With</code> = A.</td></tr>
+        <tr><td>Supplier "Công ty A"</td><td>dùng ở B</td><td>Tick <code>Is Internal Supplier</code>, <code>Represents Company</code> = A, bảng <code>Allowed To Transact With</code> = B.</td></tr>
+        <tr><td>Item</td><td>chung</td><td>Item dùng chung toàn site; khai báo <code>Item Defaults</code> (kho, income/expense account) cho từng công ty.</td></tr>
+        <tr><td>Price List</td><td>A</td><td>Bảng giá bán nội bộ (giá chuyển giao) gán làm default cho Customer Cty B.</td></tr>
+        <tr><td>Taxes Template</td><td>A, B</td><td>Sales Taxes Template ở A và Purchase Taxes Template tương ứng ở B, cùng thuế suất để hai hóa đơn khớp.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Tổng hợp bút toán GL</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Bước</th><th>Chứng từ</th><th>Công ty</th><th>Nợ (Dr)</th><th>Có (Cr)</th></tr></thead>
+      <tbody>
+        <tr><td>3</td><td>Delivery Note</td><td>A</td><td>Cost of Goods Sold</td><td>Stock In Hand</td></tr>
+        <tr><td>4</td><td>Purchase Receipt</td><td>B</td><td>Stock In Hand</td><td>Stock Received But Not Billed</td></tr>
+        <tr><td>5</td><td>Sales Invoice</td><td>A</td><td>Debtors – Cty B</td><td>Sales; Output VAT</td></tr>
+        <tr><td>6</td><td>Purchase Invoice</td><td>B</td><td>Stock Received But Not Billed; Input VAT</td><td>Creditors – Cty A</td></tr>
+        <tr><td>7</td><td>Payment Entry (Pay)</td><td>B</td><td>Creditors – Cty A</td><td>Bank</td></tr>
+        <tr><td>8</td><td>Payment Entry (Receive)</td><td>A</td><td>Bank</td><td>Debtors – Cty B</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Lưu ý</h2>
+  <div class="note">
+    <ul>
+      <li>Nút <code>Inter Company …</code> chỉ hiện khi party của chứng từ là Internal Customer/Supplier và chứng từ đã submit.</li>
+      <li>Chứng từ đối ứng được tạo ở trạng thái <b>Draft</b>; người dùng của công ty kia kiểm tra kho, tài khoản, thuế rồi mới submit.</li>
+      <li>Hủy (cancel) chứng từ gốc không tự hủy chứng từ đối ứng. Phải hủy cả hai bên để số liệu khớp.</li>
+      <li>Nếu Customer nội bộ có <code>Represents Company</code> trùng chính công ty đang bán (chuyển kho giữa chi nhánh), ERPNext coi là <i>internal transfer</i>: Delivery Note có <code>Target Warehouse</code>, không ghi doanh thu thật mà dùng <code>Unrealized Profit Account</code>. Sơ đồ này là trường hợp hai pháp nhân khác nhau.</li>
+      <li>Tên nút và trường lấy theo ERPNext v14/v15; các bản cũ hơn có thể khác một chút.</li>
+    </ul>
+  </div>
+</main>
+
+<script>
+  (function () {
+    var nodes = document.querySelectorAll('.node[data-step]');
+    var cards = document.querySelectorAll('.card[data-step]');
+    function select(step) {
+      nodes.forEach(function (n) { n.classList.toggle('active', n.dataset.step === step); });
+      cards.forEach(function (c) { c.classList.toggle('active', c.dataset.step === step); });
+      var card = document.querySelector('.card[data-step="' + step + '"]');
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    nodes.forEach(function (n) {
+      n.addEventListener('click', function () { select(n.dataset.step); });
+      n.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(n.dataset.step); }
+      });
+    });
+    cards.forEach(function (c) {
+      c.addEventListener('mouseenter', function () {
+        nodes.forEach(function (n) { n.classList.toggle('active', n.dataset.step === c.dataset.step); });
+      });
+    });
+
+    var root = document.documentElement;
+    document.getElementById('themeBtn').addEventListener('click', function () {
+      var dark = root.dataset.theme
+        ? root.dataset.theme === 'dark'
+        : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.dataset.theme = dark ? 'light' : 'dark';
+    });
+  })();
+</script>
+</body>
+</html>
