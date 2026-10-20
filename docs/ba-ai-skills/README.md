@@ -1,5 +1,7 @@
 # Tổng hợp AI Skill / Plugin cho Business Analyst
 
+> Xem thêm: [Rà soát & hướng dẫn cài đặt](huong-dan-cai-dat.md).
+
 > Nguồn: tìm kiếm các bài viết công khai trên Facebook (10/2026).
 > Lưu ý: chỉ đọc được đoạn trích trên kết quả tìm kiếm, chưa mở được toàn bộ nội dung bài và chưa kiểm tra các repo GitHub được nhắc tới. Hãy mở từng link để lấy repo/file skill gốc.
 
