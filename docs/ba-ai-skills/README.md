@@ -1,6 +1,6 @@
 # Tổng hợp AI Skill / Plugin cho Business Analyst
 
-> Xem thêm: [Rà soát & hướng dẫn cài đặt](huong-dan-cai-dat.md) · [Giải pháp vẽ sơ đồ hệ thống có chuyển động](giai-phap-so-do-dong.md) ([demo](demo-so-do-dong.html)).
+> Xem thêm: [Rà soát & hướng dẫn cài đặt](huong-dan-cai-dat.md) · [Giải pháp vẽ sơ đồ hệ thống có chuyển động](giai-phap-so-do-dong.md) ([demo](demo-so-do-dong.html)) · [Ý tưởng thiết lập môi trường làm việc cho AI](y-tuong-thiet-lap-moi-truong-ai.md).
 
 > Nguồn: tìm kiếm các bài viết công khai trên Facebook (10/2026).
 > Lưu ý: chỉ đọc được đoạn trích trên kết quả tìm kiếm, chưa mở được toàn bộ nội dung bài và chưa kiểm tra các repo GitHub được nhắc tới. Hãy mở từng link để lấy repo/file skill gốc.
