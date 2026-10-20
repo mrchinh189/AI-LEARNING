@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sơ đồ hệ thống động</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --text: #1f2328; --muted: #656d76;
+    --node: #ffffff; --node-stroke: #c9ced6; --edge: #9aa3ae;
+    --accent: #2563eb; --accent-soft: #dbe7ff; --ok: #15803d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15171a; --panel: #1e2125; --text: #e6e8eb; --muted: #9aa3ae;
+      --node: #23272c; --node-stroke: #3a4048; --edge: #5b6470;
+      --accent: #60a5fa; --accent-soft: #1e3a5f; --ok: #4ade80;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15171a; --panel: #1e2125; --text: #e6e8eb; --muted: #9aa3ae;
+    --node: #23272c; --node-stroke: #3a4048; --edge: #5b6470;
+    --accent: #60a5fa; --accent-soft: #1e3a5f; --ok: #4ade80;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 40px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 16px; }
+  .card { background: var(--panel); border: 1px solid var(--node-stroke); border-radius: 12px; padding: 12px; }
+  svg { width: 100%; height: auto; display: block; }
+  .node rect { fill: var(--node); stroke: var(--node-stroke); stroke-width: 1.5; transition: fill .3s, stroke .3s; }
+  .node text { fill: var(--text); font-size: 14px; text-anchor: middle; dominant-baseline: middle; }
+  .node .tag { fill: var(--muted); font-size: 11px; }
+  .node.active rect { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2.5; }
+  .node.done rect { stroke: var(--ok); }
+  .edge { fill: none; stroke: var(--edge); stroke-width: 2; marker-end: url(#arrow); transition: stroke .3s; }
+  .edge.active { stroke: var(--accent); stroke-width: 3; marker-end: url(#arrow-active); }
+  .flow .edge { stroke-dasharray: 7 7; animation: dash 0.9s linear infinite; }
+  @keyframes dash { to { stroke-dashoffset: -14; } }
+  #arrow path { fill: var(--edge); }
+  #arrow-active path { fill: var(--accent); }
+  .packet { fill: var(--accent); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+  button, select { font: inherit; color: var(--text); background: var(--panel);
+    border: 1px solid var(--node-stroke); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .caption { min-height: 48px; padding: 10px 12px; border-left: 4px solid var(--accent);
+    background: var(--panel); border-radius: 0 8px 8px 0; }
+  .caption b { color: var(--accent); }
+  ol { color: var(--muted); padding-left: 20px; }
+  ol li.cur { color: var(--text); font-weight: 600; }
+  @media (prefers-reduced-motion: reduce) { .flow .edge { animation: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sơ đồ hệ thống động: luồng đặt lịch khám</h1>
+  <p class="sub">Demo không cần thư viện: SVG + CSS + JavaScript. Chạy theo kịch bản từng bước hoặc xem luồng dữ liệu liên tục.</p>
+
+  <div class="controls">
+    <button id="play" class="primary">▶ Phát</button>
+    <button id="prev">◀ Trước</button>
+    <button id="next">Sau ▶</button>
+    <button id="reset">↺ Làm lại</button>
+    <select id="mode" aria-label="Chế độ">
+      <option value="step">Chế độ: theo từng bước</option>
+      <option value="flow">Chế độ: luồng liên tục</option>
+    </select>
+    <select id="speed" aria-label="Tốc độ">
+      <option value="1600">Chậm</option>
+      <option value="1000" selected>Vừa</option>
+      <option value="600">Nhanh</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <svg id="diagram" viewBox="0 0 1040 480" role="img" aria-label="Sơ đồ kiến trúc hệ thống đặt lịch khám">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="arrow-active" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <g id="edges"></g>
+      <g id="nodes"></g>
+      <circle id="packet" class="packet" r="7" cx="-20" cy="-20"/>
+    </svg>
+  </div>
+
+  <p class="caption" id="caption">Bấm <b>▶ Phát</b> để xem kịch bản.</p>
+  <ol id="steps"></ol>
+</main>
+
+<script>
+// ===== 1. Mô hình sơ đồ (đây là phần AI/BA chỉ cần sửa) =====
+const nodes = [
+  { id: "user",    label: "Bệnh nhân",       tag: "Actor",        x: 20,  y: 218, w: 120, h: 64 },
+  { id: "web",     label: "Web / Mobile App", tag: "Frontend",    x: 190, y: 218, w: 140, h: 64 },
+  { id: "gw",      label: "API Gateway",     tag: "Edge",         x: 380, y: 218, w: 140, h: 64 },
+  { id: "auth",    label: "Auth Service",    tag: "OAuth2 / JWT", x: 380, y: 50,  w: 140, h: 64 },
+  { id: "booking", label: "Booking Service", tag: "Core",         x: 570, y: 218, w: 150, h: 64 },
+  { id: "db",      label: "PostgreSQL",      tag: "Database",     x: 570, y: 386, w: 150, h: 64 },
+  { id: "queue",   label: "Message Queue",   tag: "Event bus",    x: 780, y: 218, w: 150, h: 64 },
+  { id: "notify",  label: "Notification",    tag: "SMS / Email",  x: 780, y: 50,  w: 150, h: 64 },
+];
+const edges = [
+  { id: "e1", d: "M140 250 H188" },
+  { id: "e2", d: "M330 250 H378" },
+  { id: "e3", d: "M450 218 V116" },
+  { id: "e4", d: "M520 250 H568" },
+  { id: "e5", d: "M645 282 V384" },
+  { id: "e6", d: "M720 250 H778" },
+  { id: "e7", d: "M855 218 V116" },
+  { id: "e8", d: "M855 50 V18 H80 V216" },
+];
+const steps = [
+  { edge: "e1", node: "web",     text: "Bệnh nhân chọn khung giờ và bấm <b>Xác nhận</b>." },
+  { edge: "e2", node: "gw",      text: "App gửi <b>POST /bookings</b> kèm access token." },
+  { edge: "e3", node: "auth",    text: "Gateway kiểm tra token với <b>Auth Service</b>." },
+  { edge: "e4", node: "booking", text: "Token hợp lệ: chuyển yêu cầu đến <b>Booking Service</b>." },
+  { edge: "e5", node: "db",      text: "Khoá khung giờ, ghi lịch trạng thái <b>BOOKED</b>." },
+  { edge: "e6", node: "queue",   text: "Phát sự kiện <b>BookingConfirmed</b> lên hàng đợi." },
+  { edge: "e7", node: "notify",  text: "Notification Service nhận sự kiện." },
+  { edge: "e8", node: "user",    text: "Gửi <b>SMS / Email</b> xác nhận cho bệnh nhân." },
+];
+
+// ===== 2. Vẽ =====
+const NS = "http://www.w3.org/2000/svg";
+const $ = (id) => document.getElementById(id);
+const svgEl = (tag, attrs) => { const el = document.createElementNS(NS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); return el; };
+
+for (const e of edges) $("edges").appendChild(svgEl("path", { id: e.id, d: e.d, class: "edge" }));
+for (const n of nodes) {
+  const g = svgEl("g", { id: "n-" + n.id, class: "node" });
+  g.appendChild(svgEl("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 10 }));
+  const t = svgEl("text", { x: n.x + n.w / 2, y: n.y + n.h / 2 - 8 }); t.textContent = n.label; g.appendChild(t);
+  const s = svgEl("text", { x: n.x + n.w / 2, y: n.y + n.h / 2 + 13, class: "tag" }); s.textContent = n.tag; g.appendChild(s);
+  $("nodes").appendChild(g);
+}
+steps.forEach((s, i) => { const li = document.createElement("li"); li.innerHTML = s.text; li.id = "s-" + i; $("steps").appendChild(li); });
+
+// ===== 3. Hoạt cảnh =====
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let cur = -1, timer = null, raf = null;
+
+function movePacket(path, ms) {
+  cancelAnimationFrame(raf);
+  const len = path.getTotalLength(), p = $("packet");
+  if (reduced) { const end = path.getPointAtLength(len); p.setAttribute("cx", end.x); p.setAttribute("cy", end.y); return; }
+  const t0 = performance.now();
+  const tick = (now) => {
+    const k = Math.min(1, (now - t0) / ms);
+    const pt = path.getPointAtLength(len * (1 - Math.pow(1 - k, 2)));
+    p.setAttribute("cx", pt.x); p.setAttribute("cy", pt.y);
+    if (k < 1) raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+}
+
+function show(i) {
+  cur = Math.max(-1, Math.min(i, steps.length - 1));
+  document.querySelectorAll(".edge").forEach((e) => e.classList.remove("active"));
+  document.querySelectorAll(".node").forEach((n) => n.classList.remove("active", "done"));
+  document.querySelectorAll("#steps li").forEach((li, j) => li.classList.toggle("cur", j === cur));
+  if (cur < 0) { $("packet").setAttribute("cx", -20); $("caption").innerHTML = "Bấm <b>▶ Phát</b> để xem kịch bản."; return; }
+  if (cur === 0) $("n-user").classList.add("done");
+  for (let j = 0; j < cur; j++) $("n-" + steps[j].node).classList.add("done");
+  const s = steps[cur];
+  $(s.edge).classList.add("active");
+  $("n-" + s.node).classList.add("active");
+  $("caption").innerHTML = `<b>Bước ${cur + 1}/${steps.length}.</b> ${s.text}`;
+  movePacket($(s.edge), +$("speed").value * 0.7);
+}
+
+function stop() { clearInterval(timer); timer = null; $("play").textContent = "▶ Phát"; }
+function play() {
+  if (timer) return stop();
+  if (cur >= steps.length - 1) show(-1);
+  $("play").textContent = "⏸ Dừng";
+  show(cur + 1);
+  timer = setInterval(() => { if (cur >= steps.length - 1) return stop(); show(cur + 1); }, +$("speed").value);
+}
+
+$("play").onclick = play;
+$("next").onclick = () => { stop(); show(cur + 1); };
+$("prev").onclick = () => { stop(); show(cur - 1); };
+$("reset").onclick = () => { stop(); show(-1); };
+$("speed").onchange = () => { if (timer) { stop(); play(); } };
+$("mode").onchange = (e) => {
+  const flow = e.target.value === "flow";
+  $("diagram").classList.toggle("flow", flow);
+  document.querySelectorAll(".edge").forEach((p) => p.classList.toggle("active", flow));
+  if (flow) { stop(); document.querySelectorAll(".node").forEach((n) => n.classList.remove("active", "done")); $("packet").setAttribute("cx", -20); $("caption").innerHTML = "Đang hiển thị <b>toàn bộ luồng dữ liệu</b> chạy liên tục."; }
+  else show(cur);
+};
+</script>
+</body>
+</html>
