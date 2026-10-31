@@ -1,0 +1,29 @@
+# Ngưỡng và quy tắc cảnh báo. Sửa file này rồi chạy lại, không cần sửa code.
+# wd = working days (ngày làm việc, đã trừ Chủ nhật và ngày lễ trong Holiday List của Company).
+
+rag:
+  spi_green_min: 0.95   # SPI >= 0,95 và không có Alert Đỏ/Vàng -> Xanh
+  spi_red_below: 0.80   # SPI < 0,80 -> Đỏ
+
+evidence:
+  # Task có chứng từ bằng chứng chỉ được tối đa 90% cho tới khi chứng từ đạt điều kiện.
+  progress_cap_until_met: 90
+  # Giá trị workflow_state / status được coi là "bị từ chối".
+  rejected_values: ["Rejected", "Từ chối", "Cancelled", "Đã hủy"]
+
+rules:
+  R01_critical_task_late:     { enabled: true,  severity: Đỏ }
+  R02_milestone_slip:         { enabled: true,  severity: Đỏ,  threshold_wd: 3 }
+  R03_float_low:              { enabled: false, severity: Vàng, threshold_wd: 2 }   # bật ở Giai đoạn 3
+  R04_evidence_mismatch:      { enabled: true,  severity: Vàng }
+  R05_evidence_rejected:      { enabled: true,  severity: Đỏ }
+  R06_stale_task:             { enabled: true,  severity: Vàng, threshold_wd: 5 }
+  R07_spi_low:                { enabled: false, severity: Vàng }                    # bật ở Giai đoạn 3
+  R09_blocker:                { enabled: true,  severity: Vàng }
+
+alerts:
+  same_alert_cooldown_days: 3   # không tạo lại Alert giống hệt trong N ngày
+
+checkin:
+  due_within_days: 14           # nhắc các việc có hạn trong 14 ngày tới
+  stale_after_wd: 3             # hoặc lâu hơn 3 ngày làm việc chưa cập nhật

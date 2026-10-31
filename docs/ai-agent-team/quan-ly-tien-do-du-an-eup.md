@@ -2,6 +2,7 @@
 
 > **Phạm vi:** thiết kế giải pháp và lộ trình triển khai một đội AI agent hỗ trợ PMO theo dõi tiến độ dự án tại EuP.
 > **Hệ thống lõi:** ERP EuP (erp.eup.vn, nền Frappe/ERPNext, app custom `eupapp`).
+> **Triển khai:** xem [Hướng dẫn triển khai từng bước](./huong-dan-trien-khai-tung-buoc.md) và code MVP ở [`projects/eup-pm-agent`](../../projects/eup-pm-agent/README.md).
 > **Trạng thái:** bản thiết kế v1 (31/10/2026). Các điểm đánh dấu `[CẦN XÁC NHẬN]` phải được chốt trước khi bắt đầu Giai đoạn 1.
 
 ## Mục lục
