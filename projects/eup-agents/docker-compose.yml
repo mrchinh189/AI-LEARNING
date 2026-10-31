@@ -1,0 +1,24 @@
+services:
+  agents:
+    build: .
+    env_file: .env
+    volumes:
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+    restart: unless-stopped
+    # Không mở cổng ra ngoài: chỉ n8n trong cùng mạng Docker gọi được http://agents:8000
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - GENERIC_TIMEZONE=Asia/Ho_Chi_Minh
+      - TZ=Asia/Ho_Chi_Minh
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+
+volumes:
+  n8n_data:

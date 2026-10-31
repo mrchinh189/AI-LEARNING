@@ -1,0 +1,15 @@
+{
+  "_ghi_chu": "Sao chép thành org.json. Tên công ty và phòng ban phải GIỐNG HỆT tên trên ERP (Company, Department).",
+  "pilot_companies": ["Công ty Cổ phần Nhựa Châu Âu"],
+  "department_heads": {
+    "Tài chính - Kế toán - EUP": "truongphong.ketoan@eup.vn"
+  },
+  "unassigned_fallback": "truongphong.ketoan@eup.vn",
+  "erp_watch": {
+    "draft_days": 3,
+    "draft_doctypes": ["Purchase Order", "Purchase Invoice", "Sales Invoice", "Journal Entry"],
+    "receipt_unbilled_days": 7,
+    "task_due_days": 2,
+    "department": "Tài chính - Kế toán - EUP"
+  }
+}

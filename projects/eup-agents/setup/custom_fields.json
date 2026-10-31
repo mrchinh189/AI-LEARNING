@@ -1,0 +1,11 @@
+[
+  {"fieldname": "eup_section", "label": "Theo dõi bởi AI agent", "fieldtype": "Section Break", "insert_after": "description", "collapsible": 1},
+  {"fieldname": "eup_confirm_state", "label": "Trạng thái xác nhận", "fieldtype": "Select", "options": "\nChờ xác nhận\nĐã xác nhận\nTừ chối", "insert_after": "eup_section", "in_standard_filter": 1},
+  {"fieldname": "eup_assigned_by", "label": "Người giao việc", "fieldtype": "Link", "options": "User", "insert_after": "eup_confirm_state"},
+  {"fieldname": "eup_definition_of_done", "label": "Tiêu chí hoàn thành", "fieldtype": "Small Text", "insert_after": "eup_assigned_by"},
+  {"fieldname": "eup_col", "fieldtype": "Column Break", "insert_after": "eup_definition_of_done"},
+  {"fieldname": "eup_source", "label": "Nguồn phát sinh", "fieldtype": "Select", "options": "\nEmail\nChat\nHọp\nCông văn\nERP tự sinh\nThủ công", "insert_after": "eup_col", "in_standard_filter": 1},
+  {"fieldname": "eup_source_ref", "label": "Tham chiếu nguồn", "fieldtype": "Data", "insert_after": "eup_source"},
+  {"fieldname": "eup_escalation_level", "label": "Mức leo thang", "fieldtype": "Int", "default": "0", "insert_after": "eup_source_ref"},
+  {"fieldname": "eup_agent_created", "label": "Do agent tạo", "fieldtype": "Check", "default": "0", "insert_after": "eup_escalation_level"}
+]
