@@ -1,0 +1,16 @@
+# Lịch chạy tự động. Cài bằng: crontab -e rồi dán các dòng dưới (sửa đường dẫn APP cho đúng).
+# Máy chủ phải đặt múi giờ Asia/Ho_Chi_Minh (kiểm tra: timedatectl).
+CRON_TZ=Asia/Ho_Chi_Minh
+APP=/opt/eup-pm-agent
+
+# Thứ Hai – Thứ Bảy 16:00: nhắc người phụ trách cập nhật tiến độ
+0 16 * * 1-6  $APP/deploy/run.sh checkin  >> $APP/logs/cron.log 2>&1
+
+# Thứ Hai – Thứ Bảy 17:30: đối chiếu chứng từ, tính tiến độ, tạo cảnh báo
+30 17 * * 1-6 $APP/deploy/run.sh daily    >> $APP/logs/cron.log 2>&1
+
+# Thứ Sáu 14:00: soạn báo cáo tuần (bản nháp, PM duyệt trước 17:00)
+0 14 * * 5    $APP/deploy/run.sh report   >> $APP/logs/cron.log 2>&1
+
+# Giờ hành chính, 30 phút/lần: gửi các báo cáo PM đã chuyển sang "Đã phát hành"
+*/30 8-18 * * 1-6 $APP/deploy/run.sh publish >> $APP/logs/cron.log 2>&1
