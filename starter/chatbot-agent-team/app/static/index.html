@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chatbot + AI Agent Team</title>
+<style>
+  :root { --bg:#f6f7f9; --panel:#fff; --text:#1d2330; --muted:#6b7280; --me:#2563eb; --me-text:#fff;
+          --bot:#eef0f4; --border:#e3e6ec; --ok:#16a34a; --err:#dc2626; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111418; --panel:#1a1f26; --text:#e6e9ef; --muted:#9aa3b2; --me:#3b82f6; --bot:#242b35; --border:#2d3540; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--text); }
+  .app { max-width:760px; margin:0 auto; height:100dvh; display:flex; flex-direction:column; padding:0 16px; }
+  header { padding:14px 0; border-bottom:1px solid var(--border); }
+  header h1 { margin:0; font-size:17px; } header p { margin:2px 0 0; color:var(--muted); font-size:13px; }
+  #log { flex:1; overflow-y:auto; padding:16px 0; display:flex; flex-direction:column; gap:10px; }
+  .msg { max-width:85%; padding:10px 14px; border-radius:14px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .me { align-self:flex-end; background:var(--me); color:var(--me-text); border-bottom-right-radius:4px; }
+  .bot { align-self:flex-start; background:var(--bot); border-bottom-left-radius:4px; }
+  .note { align-self:flex-start; color:var(--muted); font-size:13px; }
+  .err { color:var(--err); }
+  .card { align-self:flex-start; max-width:85%; border:1px solid var(--border); background:var(--panel); border-radius:12px; padding:12px 14px; }
+  .card b { display:block; margin-bottom:6px; } .card code { font-size:12px; color:var(--muted); white-space:pre-wrap; }
+  .card .row { display:flex; gap:8px; margin-top:10px; }
+  button { font:inherit; border:0; border-radius:10px; padding:8px 14px; cursor:pointer; }
+  .approve { background:var(--ok); color:#fff; } .reject { background:var(--bot); color:var(--text); }
+  form { display:flex; gap:8px; padding:12px 0 16px; border-top:1px solid var(--border); }
+  textarea { flex:1; resize:none; font:inherit; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel); color:var(--text); }
+  .send { background:var(--me); color:#fff; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Chatbot + AI Agent Team</h1>
+    <p>Hỏi nhanh từ tài liệu, gõ <b>/sau &lt;yêu cầu&gt;</b> để giao cho nhóm agent, gõ <b>gặp nhân viên</b> để chuyển người thật.</p>
+  </header>
+  <div id="log"></div>
+  <form id="form">
+    <textarea id="input" rows="2" placeholder="Nhập tin nhắn, Enter để gửi" required></textarea>
+    <button class="send" type="submit">Gửi</button>
+  </form>
+</div>
+<script>
+const log = document.getElementById("log");
+const input = document.getElementById("input");
+let sessionId;
+try { sessionId = localStorage.getItem("session_id"); } catch (e) {}
+if (!sessionId) {
+  sessionId = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now()).replace(/-/g, "");
+  try { localStorage.setItem("session_id", sessionId); } catch (e) {}
+}
+
+function add(cls, text) {
+  const el = document.createElement("div");
+  el.className = cls; el.textContent = text;
+  log.appendChild(el); log.scrollTop = log.scrollHeight;
+  return el;
+}
+
+function approvalCard(ev) {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = "<b>Cần bạn duyệt hành động</b><div></div><code></code><div class='row'></div>";
+  card.children[1].textContent = ev.message;
+  card.children[2].textContent = JSON.stringify(ev.data.params, null, 2);
+  for (const [label, decision, cls] of [["Duyệt", "approve", "approve"], ["Hủy", "reject", "reject"]]) {
+    const b = document.createElement("button");
+    b.textContent = label; b.className = cls;
+    b.onclick = async () => {
+      const r = await fetch(`/api/approvals/${ev.data.approval_id}`, {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({session_id: sessionId, decision}),
+      });
+      const data = await r.json();
+      card.querySelector(".row").textContent = data.message || data.detail;
+    };
+    card.querySelector(".row").appendChild(b);
+  }
+  log.appendChild(card); log.scrollTop = log.scrollHeight;
+}
+
+async function follow(taskId) {
+  let after = 0, finished = false, waiting = new Set(), idle = 0;
+  while (!(finished && waiting.size === 0) && idle < 900) {
+    await new Promise(r => setTimeout(r, 2000));
+    let data;
+    try {
+      const r = await fetch(`/api/tasks/${taskId}/events?session_id=${sessionId}&after=${after}`);
+      data = await r.json();
+    } catch (e) { idle++; continue; }
+    idle = data.events.length ? 0 : idle + 1;
+    for (const ev of data.events) {
+      after = ev.id;
+      if (ev.kind === "progress") add("note", "⏳ " + ev.message);
+      else if (ev.kind === "approval") { waiting.add(ev.data.approval_id); approvalCard(ev); }
+      else if (ev.kind === "action_result") { waiting.delete(ev.data.approval_id); add("note", "✅ " + ev.message); }
+      else if (ev.kind === "result") { finished = true; add("msg bot", ev.message); }
+      else if (ev.kind === "error") { finished = true; add("note err", "❌ " + ev.message); }
+    }
+  }
+}
+
+document.getElementById("form").onsubmit = async (e) => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  add("msg me", text);
+  const pending = add("note", "Đang trả lời...");
+  try {
+    const r = await fetch("/api/chat", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({session_id: sessionId, text}),
+    });
+    const data = await r.json();
+    pending.remove();
+    add("msg bot", data.reply || JSON.stringify(data.detail));
+    if (data.task_id) follow(data.task_id);
+  } catch (err) {
+    pending.textContent = "Không kết nối được máy chủ.";
+    pending.className = "note err";
+  }
+};
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); document.getElementById("form").requestSubmit(); }
+});
+add("msg bot", "Xin chào! Bạn cần hỗ trợ gì?");
+</script>
+</body>
+</html>

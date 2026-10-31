@@ -3,3 +3,5 @@
 Kho ghi chú học tập về AI và kỹ thuật phần mềm.
 
 - [Tài liệu thiết kế giải pháp cho các repo đã fork](docs/solution-design/README.md): phân tích kiến trúc 18 repo (web scraping, AI agent, coding agent, xử lý tài liệu, nền tảng workflow).
+- [Giải pháp Chatbot kết hợp AI Agent Team](docs/solution-design/chatbot-agent-team.md): kiến trúc tham chiếu ghép từ các repo trên.
+  - [Hướng dẫn triển khai từng bước cho người mới](docs/huong-dan-trien-khai/chatbot-agent-team.md) + [bộ mã khởi đầu chạy được](starter/chatbot-agent-team/).

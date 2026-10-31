@@ -1,0 +1,43 @@
+# Chạy:            docker compose up -d --build
+# Kèm Telegram:    docker compose --profile telegram up -d --build
+# Kèm n8n:         docker compose --profile n8n up -d --build
+x-app: &app
+  build: .
+  env_file: .env
+  environment:
+    DB_PATH: /app/data/app.db
+  volumes:
+    - ./data:/app/data
+    - ./kb:/app/kb
+  restart: unless-stopped
+
+services:
+  api:
+    <<: *app
+    ports:
+      - "127.0.0.1:8000:8000"   # chỉ mở trên máy này; ra Internet thì đặt reverse proxy HTTPS phía trước
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "app.worker"]
+
+  telegram:
+    <<: *app
+    profiles: ["telegram"]
+    command: ["python", "-m", "app.telegram_bot"]
+
+  n8n:
+    profiles: ["n8n"]
+    # Đổi N8N_VERSION sang bản mới nhất tại https://github.com/n8n-io/n8n/releases
+    image: docker.n8n.io/n8nio/n8n:${N8N_VERSION:-1.77.0}
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      GENERIC_TIMEZONE: Asia/Ho_Chi_Minh
+      TZ: Asia/Ho_Chi_Minh
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+
+volumes:
+  n8n_data:
