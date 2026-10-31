@@ -368,6 +368,8 @@ Gắn tag phiên bản cụ thể cho mọi image khi đưa vào production.
 
 ## 10. Lộ trình triển khai
 
+> Bản hiện thực tối thiểu (giai đoạn 1–3, dùng SQLite thay Postgres/Redis cho đơn giản) nằm ở [`starter/chatbot-agent-team/`](../../starter/chatbot-agent-team/), kèm [hướng dẫn từng bước cho người mới](../huong-dan-trien-khai/chatbot-agent-team.md).
+
 | Giai đoạn | Thời gian gợi ý | Phạm vi | Tiêu chí xong |
 |---|---|---|---|
 | 0. Chuẩn bị | 1 tuần | Chọn 1–2 use case, gom tài liệu, ingest KB bằng Docling/MarkItDown + Crawl4AI, viết bộ câu hỏi đánh giá | Có KB và bộ đánh giá |

@@ -57,7 +57,7 @@ Các repo dạng danh sách (`awesome-*`), skill pack, prompt và khóa học kh
 
 | Tài liệu | Tóm tắt |
 |---|---|
-| [Chatbot + AI Agent Team](./chatbot-agent-team.md) | Chatbot đa kênh có router tách đường nhanh (FAQ + RAG) và đường sâu (orchestrator điều phối các agent Research, Document, Data, Action, Reviewer qua hàng đợi), tool chuẩn hóa qua MCP, n8n làm lớp tích hợp, policy + duyệt cho hành động ghi, kèm lộ trình triển khai. |
+| [Chatbot + AI Agent Team](./chatbot-agent-team.md) | Chatbot đa kênh có router tách đường nhanh (FAQ + RAG) và đường sâu (orchestrator điều phối các agent Research, Document, Data, Action, Reviewer qua hàng đợi), tool chuẩn hóa qua MCP, n8n làm lớp tích hợp, policy + duyệt cho hành động ghi, kèm lộ trình triển khai. Có [hướng dẫn từng bước](../huong-dan-trien-khai/chatbot-agent-team.md) và [mã khởi đầu](../../starter/chatbot-agent-team/). |
 
 ## So sánh nhanh theo nhóm
 
