@@ -7,14 +7,26 @@ Hướng dẫn cài đặt và chạy từng bước cho người mới: [Hướ
 
 | Lệnh | Tương ứng agent trong thiết kế | Việc làm |
 |---|---|---|
-| `setup-erp` | — | Tạo Role, 3 doctype `Nx …` và các custom field trên Project/Task |
+| `setup-erp` | — | Tạo Role, 4 doctype `Nx …` và các custom field trên Project/Task (chạy lại an toàn, tự thêm field mới) |
 | `compute` | Engine tính toán | In ra % kế hoạch, % thực tế, SPI, đường găng, cảnh báo. Không ghi gì |
 | `daily` | ④ Đối chiếu chứng từ + ⑤ (phần quy tắc) | Đối chiếu chứng từ, tự hoàn thành Task, ghi RAG/SPI lên Project, tạo Nx Project Alert, email cảnh báo Đỏ cho PM |
 | `checkin` | ③ Thu thập + ⑦ Giao tiếp (qua email) | Mỗi người phụ trách nhận 1 email/ngày liệt kê việc cần cập nhật |
 | `report` | ⑥ Báo cáo | Soạn Nx Project Status Report nháp; số liệu do engine tính, phần nhận định do Claude viết |
 | `publish` | ⑦ Giao tiếp | Gửi báo cáo PM đã chuyển sang "Đã phát hành" |
 
-Chưa có trong bản này (làm ở Giai đoạn 3): kênh Zalo/Google Chat, đọc câu trả lời tự do của người phụ trách, Agent Lập kế hoạch, Agent Điều phối.
+### Agent team (`eup_pm/agents/`)
+
+Bốn agent là vòng lặp tool-use với Claude, mỗi agent có bộ tool, quyền và ngân sách riêng. Giải pháp: [agent-team-giai-phap.md](../../docs/ai-agent-team/agent-team-giai-phap.md).
+
+| Lệnh | Agent | Việc làm |
+|---|---|---|
+| `ask "câu hỏi"` | ① Điều phối | Trả lời PM, tự giao việc cho agent khác khi cần |
+| `plan --project P` → PM duyệt → `apply-plan --draft KH-…` | ② Lập kế hoạch | Soạn WBS nháp từ `kb/`, engine kiểm tra lịch; Task chỉ được tạo sau khi PM duyệt |
+| `reply --from e --text "..."` | ③ Thu thập | Đọc tin trả lời tự do, cập nhật đúng Task của người gửi, hỏi lại khi mơ hồ |
+| `risk --alert A` (và tự động sau `daily`) | ⑤ Rủi ro | Lần theo phụ thuộc và chứng từ, ghi nguyên nhân gốc và phương án vào Alert |
+| `event --json '{...}'`, `serve` | Bộ định tuyến | Đưa sự kiện từ n8n/webhook tới đúng agent |
+
+Mỗi lần gọi tool được ghi vào `logs/audit-YYYY-MM-DD.jsonl`.
 
 ## Chạy nhanh (máy đã có Python 3.10+)
 

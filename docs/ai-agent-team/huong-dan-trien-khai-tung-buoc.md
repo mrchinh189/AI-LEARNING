@@ -2,6 +2,7 @@
 
 > **Dành cho:** người triển khai lần đầu, chưa từng dựng AI agent.
 > **Kết quả cuối:** mỗi ngày hệ thống tự đối chiếu chứng từ ERP, tính tiến độ, tạo cảnh báo và nhắc việc qua email. Mỗi thứ Sáu hệ thống soạn báo cáo tuần để PM duyệt rồi gửi Ban Giám đốc. Áp dụng cho 2–3 dự án thí điểm trên ERP EuP.
+> **Phần 2 (Bước 13–18):** bật agent team. Xem [agent-team-giai-phap.md](./agent-team-giai-phap.md).
 > **Đi kèm:** thiết kế tổng thể [quan-ly-tien-do-du-an-eup.md](./quan-ly-tien-do-du-an-eup.md) và code chạy được [`projects/eup-pm-agent`](../../projects/eup-pm-agent/README.md).
 
 ## Cách đọc tài liệu này
@@ -144,7 +145,7 @@ Bộ test dùng một ERP giả có sẵn dự án mẫu "Lắp dây chuyền é
 cd /opt/eup-pm-agent && .venv/bin/python -m pytest -q
 ```
 
-Kết quả đúng: `13 passed`.
+Kết quả đúng: `26 passed`.
 
 ✅ **Xong khi:** pytest báo toàn bộ test passed.
 
@@ -573,6 +574,142 @@ Mỗi ngày còn có một file log chi tiết `logs/YYYY-MM-DD.log`.
 | Agent Lập kế hoạch | Sinh WBS nháp từ Project Template và lưu đồ ERP cho dự án mới |
 | Dashboard | Dashboard + Number Card trên ERP: RAG theo dự án, số Alert mở, SPI |
 
+
+---
+
+# Phần 2 — Bật agent team
+
+Phần 1 (Bước 0–12) dựng phần nền chạy theo lịch. Phần 2 bật lần lượt 4 agent: Rủi ro, Thu thập, Lập kế hoạch, Điều phối. Giải pháp chi tiết xem [agent-team-giai-phap.md](./agent-team-giai-phap.md).
+
+**Điều kiện:** đã xong ít nhất Bước 10 (đã có `ANTHROPIC_API_KEY` và `EUP_AGENT_MODEL` trong `.env`) và đã chạy thí điểm phần nền ≥ 2 tuần, để dữ liệu kế hoạch đủ tin cậy.
+
+## Bước 13 — Cập nhật ERP và kiểm tra code
+
+1. Lấy bản code mới:
+
+```bash
+cd /opt/AI-LEARNING && git pull
+```
+
+2. Cài lại thư viện và chạy test. Kết quả đúng: `26 passed`.
+
+```bash
+cd /opt/eup-pm-agent && .venv/bin/pip install -r requirements.txt && .venv/bin/python -m pytest -q
+```
+
+3. Chạy lại `setup-erp` để thêm doctype **Nx Plan Draft** và mục **Phân tích của Agent Rủi ro** trên Nx Project Alert. Giống Bước 4, lệnh này cần API key **System Manager** tạm thời và `DRY_RUN=0`. Xong thì trả lại key của agent và `DRY_RUN=1`.
+
+```bash
+cd /opt/eup-pm-agent && .venv/bin/python -m eup_pm setup-erp
+```
+
+4. Mở `/app/permission-manager`, cấp cho Role `EuP Project Agent` quyền **Read** trên doctype **Comment** (agent đọc ghi chú gần đây của Task), nếu Bước 5.1 chưa cấp.
+
+✅ **Xong khi:** test passed; mở một Nx Project Alert thấy mục *Phân tích của Agent Rủi ro*; mở được `/app/nx-plan-draft`.
+
+## Bước 14 — Bật Agent Rủi ro
+
+Chọn một cảnh báo **Đỏ** có thật trên UAT (mở `/app/nx-project-alert?severity=Đỏ`, chép mã, VD `ALERT-2611-0003`). Chạy thử với `DRY_RUN=1`:
+
+```bash
+cd /opt/eup-pm-agent && .venv/bin/python -m eup_pm risk --alert ALERT-2611-0003
+```
+
+Màn hình in kết quả JSON: `root_cause`, `impact`, `options`… Log ghi agent đã gọi tool nào (`get_task`, `get_predecessors`, `get_document`…). Xem chi tiết từng bước trong audit log:
+
+```bash
+tail -n 20 /opt/eup-pm-agent/logs/audit-$(date +%F).jsonl
+```
+
+**Cùng PM đánh giá:** nguyên nhân gốc có đúng không? Phương án có làm được không? Nếu đúng, đặt `DRY_RUN=0` và chạy lại để ghi vào Alert.
+
+Từ đây, mỗi lần `daily` chạy (cron 17:30), Agent Rủi ro tự phân tích tối đa 3 cảnh báo Đỏ mới cho mỗi dự án. Muốn tắt: `agents.risk.auto_after_daily: false` trong `config/rules.yaml`, hoặc chạy `daily --no-agents`.
+
+✅ **Xong khi:** 5 phân tích liên tiếp được PM đánh giá là dùng được.
+
+## Bước 15 — Bật Agent Thu thập tiến độ
+
+Ở bước này người phụ trách vẫn nhận email nhắc như Bước 9. Khác biệt: họ có thể **trả lời bằng một câu tự nhiên** thay vì mở ERP. Lúc đầu, bạn chép câu trả lời vào lệnh `reply` để thử:
+
+```bash
+cd /opt/eup-pm-agent && .venv/bin/python -m eup_pm reply --from kythuat@eup.vn --text "hang ve 60%, chac 13/11 xong, dang cho kiem hoa"
+```
+
+Kết quả `kind: updated` kèm danh sách Task đã cập nhật, hoặc `kind: clarify` kèm câu hỏi lại nếu tin nhắn mơ hồ. Khi `DRY_RUN=0`, Task được cập nhật (*Nguồn tiến độ* = Tự khai) và có Comment trích nguyên văn, đồng thời người gửi nhận email xác nhận.
+
+Thử thêm 3 trường hợp để chắc agent an toàn:
+
+| Thử | Kết quả đúng |
+|---|---|
+| Tin nhắn mơ hồ: `"sắp xong rồi"` | `clarify`, không ghi gì |
+| Người gửi báo về việc **không phải của mình** | Bị từ chối, không ghi |
+| Báo `"xong"` cho việc có chứng từ bằng chứng | Chỉ ghi 90%; Completed khi chứng từ đạt |
+
+**Tiết kiệm chi phí:** agent này chạy nhiều nhất. Đặt model nhỏ hơn riêng cho nó trong `.env`: `EUP_AGENT_MODEL_TRACKER=<mã model nhỏ>`, giữ `EUP_AGENT_FALLBACKS_TRACKER=off`.
+
+✅ **Xong khi:** 20 tin nhắn thật được xử lý, PM kiểm tra thấy ≥ 90% cập nhật đúng.
+
+## Bước 16 — Bật Agent Lập kế hoạch
+
+Dùng cho dự án **mới**, chưa có Task. Trên ERP, tạo Project, điền mục *AI Agent* như Bước 6.1. Thêm vào **Notes** của Project mô tả phạm vi (thiết bị gì, ở nhà máy nào, yêu cầu đặc biệt). Rồi chạy:
+
+```bash
+cd /opt/eup-pm-agent && .venv/bin/python -m eup_pm plan --project PROJ-0009
+```
+
+Agent đọc WBS mẫu trong `kb/`, soạn danh sách việc, gọi engine kiểm tra lịch, rồi lưu **Nx Plan Draft** (khi `DRY_RUN=0`) và email cho PM.
+
+**PM duyệt:** mở `/app/nx-plan-draft/<mã>` → đọc *Tóm tắt*, *Giả định*, xem *Kế hoạch (JSON)* → ghi *Ý kiến PM* → đổi **Trạng thái** thành `Đã duyệt` (hoặc `Từ chối` rồi chạy lại `plan`) → **Lưu**.
+
+**Bạn áp dụng** (lệnh của người, agent không tự làm được):
+
+```bash
+cd /opt/eup-pm-agent && .venv/bin/python -m eup_pm apply-plan --draft KH-2611-0001
+```
+
+Task được tạo theo thứ tự phụ thuộc, có baseline. Sau đó PM giao người phụ trách (Assign To) và thêm chứng từ bằng chứng khi chứng từ phát sinh, như Bước 6.
+
+**Nâng chất lượng kế hoạch:** sửa và bổ sung file trong `projects/eup-pm-agent/kb/`, như thời lượng thực tế và bản text các lưu đồ ERP. Xem `kb/README.md`.
+
+✅ **Xong khi:** PM đồng ý dùng ≥ 70% kế hoạch nháp mà không phải sửa lớn.
+
+## Bước 17 — Bật Agent Điều phối
+
+PM, hoặc bạn thay PM, hỏi tự do:
+
+```bash
+cd /opt/eup-pm-agent && .venv/bin/python -m eup_pm ask "Dự án dây chuyền ép số 3 sao rồi, vì sao trễ, cần tôi quyết gì?"
+```
+
+Điều phối tự tra cứu, và khi cần thì giao Agent Rủi ro phân tích, Agent Lập kế hoạch soạn kế hoạch, hoặc Agent Báo cáo soạn báo cáo. Câu trả lời in ra màn hình. Nếu câu trả lời có con số không kiểm chứng được từ ERP, cuối câu trả lời có dòng ⚠.
+
+✅ **Xong khi:** 10 câu hỏi thật của PM được trả lời đúng.
+
+## Bước 18 — Kết nối kênh chat (Giai đoạn 3)
+
+Để người phụ trách trả lời qua Zalo hoặc email mà không cần ai chép tay:
+
+1. Tạo token cho webhook và điền `EUP_WEBHOOK_TOKEN` trong `.env`:
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+2. Chạy webhook (nên đặt thành service systemd để tự khởi động):
+
+```bash
+cd /opt/eup-pm-agent && .venv/bin/python -m eup_pm serve
+```
+
+Kiểm tra: `curl http://127.0.0.1:8787/health` trả `{"ok": true}`.
+
+3. Trong n8n (cùng máy), dựng workflow: **trigger** (Zalo OA webhook / IMAP email) → **xác thực người gửi** (map Zalo ID hoặc email sang user ERP; không khớp thì bỏ) → **HTTP Request** `POST http://127.0.0.1:8787/event`, header `X-Agent-Token`, body `{"type":"reply","from":"<email user ERP>","text":"<nội dung>"}` → gửi `reply` trong kết quả về lại kênh.
+4. Webhook nhận cả `{"type":"ask", ...}` (PM hỏi qua chat) và `{"type":"new_project","project":"..."}` (gọi từ Webhook của ERP khi tạo Project).
+
+> Không mở cổng 8787 ra Internet. Nếu n8n ở máy khác, đặt webhook sau reverse proxy có HTTPS và giới hạn IP.
+
+✅ **Xong khi:** một tin Zalo hoặc email trả lời thật cập nhật được Task trên UAT.
+
 ---
 
 ## Phụ lục A — Lỗi thường gặp
@@ -592,6 +729,11 @@ Mỗi ngày còn có một file log chi tiết `logs/YYYY-MM-DD.log`.
 | `Claude API lỗi 400` khi bật `EUP_AGENT_FALLBACKS=default` | Model đang chọn không hỗ trợ fallback | Đổi `EUP_AGENT_FALLBACKS=off` hoặc dùng model dòng Opus mới nhất |
 | `Không kết nối được Claude API` | Máy chủ chặn mạng ra ngoài | Nhờ IT mở HTTPS tới `api.anthropic.com` |
 | Cron không chạy | Sai đường dẫn, chưa `chmod +x`, sai múi giờ | `crontab -l`, xem `logs/cron.log`, `timedatectl` |
+| `Agent … KHÔNG xong — Hết N lượt` | Agent tra cứu mãi chưa đủ căn cứ (thường do kế hoạch thiếu phụ thuộc hoặc chứng từ chưa gắn project) | Xem audit log để biết agent kẹt ở đâu; bổ sung dữ liệu; có thể tăng `max_turns` trong `rules.yaml` |
+| `Bị từ chối: các con số sau không có trong dữ liệu` (trong audit log) | Agent định đưa số tự nghĩ ra; policy đã chặn | Bình thường, agent tự sửa và nộp lại. Lặp nhiều lần thì bổ sung dữ liệu (VD chi phí) vào ERP hoặc `kb/` |
+| `Agent không được tạo Task` | Gọi tạo Task ngoài lệnh `apply-plan` | Đúng thiết kế: Task chỉ tạo qua `apply-plan` sau khi PM duyệt |
+| `Agent … đang tắt trong config/rules.yaml` | `agents.<tên>.enabled: false` | Đổi thành `true` nếu muốn bật |
+| `Đặt EUP_WEBHOOK_TOKEN …` | Chạy `serve` khi chưa có token | Bước 18.1 |
 
 ## Phụ lục B — Tra cứu lệnh nhanh
 
@@ -604,6 +746,13 @@ Mỗi ngày còn có một file log chi tiết `logs/YYYY-MM-DD.log`.
 | `python -m eup_pm checkin [--project X]` | Email | Hằng ngày (cron) |
 | `python -m eup_pm report [--project X] [--no-llm]` | Báo cáo nháp, email cho PM | Thứ Sáu (cron) |
 | `python -m eup_pm publish` | Email báo cáo, đánh dấu đã gửi | 30 phút/lần (cron) |
+| `python -m eup_pm risk --alert A` / `--project P` | Phân tích vào Nx Project Alert | Phân tích một cảnh báo / các cảnh báo Đỏ mới |
+| `python -m eup_pm reply --from e --text "..."` | Task, Comment, email trả lời | Xử lý tin trả lời của người phụ trách |
+| `python -m eup_pm plan --project P` | Nx Plan Draft, email PM | Lập kế hoạch nháp cho dự án mới |
+| `python -m eup_pm apply-plan --draft KH-…` | Tạo Task | Sau khi PM duyệt kế hoạch |
+| `python -m eup_pm ask "câu hỏi"` | Tùy agent được giao | PM hỏi tự do |
+| `python -m eup_pm event --json '{...}'` | Tùy loại sự kiện | Thử sự kiện như webhook |
+| `python -m eup_pm serve` | Tùy sự kiện | Webhook cho n8n |
 
 Mọi lệnh ghi đều tôn trọng `DRY_RUN`. Thêm `-v` để xem chi tiết.
 
@@ -613,6 +762,7 @@ Mọi lệnh ghi đều tôn trọng `DRY_RUN`. Thêm `-v` để xem chi tiết.
 |---|---|
 | Dừng agent cho một dự án | Bỏ tích **Bật AI agent** trên Project |
 | Dừng toàn bộ việc ghi và gửi | Đặt `DRY_RUN=1` trong `.env` |
-| Dừng hẳn | `crontab -e`, thêm `#` trước các dòng `run.sh` |
+| Tắt một agent | `agents.<tên>.enabled: false` trong `config/rules.yaml` |
+| Dừng hẳn | `crontab -e`, thêm `#` trước các dòng `run.sh`; dừng `serve` |
 | Chặn agent ngay trên ERP | Mở user agent → bỏ tích **Enabled**, hoặc Generate Keys lại để key cũ mất hiệu lực |
 | Khôi phục một Task bị ghi sai | Mở Task → mục **Activity / Version** ở cuối form xem giá trị cũ, sửa lại tay |

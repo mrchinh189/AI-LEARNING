@@ -60,6 +60,16 @@ DOCTYPES = [
              "options": "\nĐúng\nSai\nThừa"},
             {"fieldname": "dismiss_reason", "label": "Lý do bỏ qua", "fieldtype": "Small Text",
              "depends_on": "eval:doc.status=='Bỏ qua'"},
+            {"fieldname": "agent_section", "label": "Phân tích của Agent Rủi ro", "fieldtype": "Section Break"},
+            {"fieldname": "root_cause", "label": "Nguyên nhân gốc", "fieldtype": "Small Text", "read_only": 1},
+            {"fieldname": "impact", "label": "Tác động", "fieldtype": "Small Text", "read_only": 1},
+            {"fieldname": "options", "label": "Phương án", "fieldtype": "Text", "read_only": 1},
+            {"fieldname": "decision_owner", "label": "Người cần quyết (vai trò)", "fieldtype": "Data",
+             "read_only": 1},
+            {"fieldname": "decide_by_text", "label": "Hạn quyết định", "fieldtype": "Data", "read_only": 1},
+            {"fieldname": "data_gaps", "label": "Dữ liệu còn thiếu", "fieldtype": "Small Text", "read_only": 1},
+            {"fieldname": "analysed_by_agent", "label": "Agent đã phân tích", "fieldtype": "Check",
+             "read_only": 1},
         ],
         "permissions": _perms("System Manager", "Projects Manager", read_write=(AGENT_ROLE, "Projects User")),
     },
@@ -84,6 +94,26 @@ DOCTYPES = [
             {"fieldname": "pm_comment", "label": "Ý kiến PM", "fieldtype": "Small Text"},
             {"fieldname": "sent", "label": "Đã gửi", "fieldtype": "Check", "read_only": 1},
             {"fieldname": "sent_on", "label": "Gửi lúc", "fieldtype": "Datetime", "read_only": 1},
+        ],
+        "permissions": _perms("System Manager", "Projects Manager", read_write=(AGENT_ROLE,)),
+    },
+    {
+        "name": "Nx Plan Draft",
+        "autoname": "format:KH-{YY}{MM}-{####}",
+        "title_field": "project",
+        "fields": [
+            {"fieldname": "project", "label": "Dự án", "fieldtype": "Link", "options": "Project",
+             "reqd": 1, "in_list_view": 1, "in_standard_filter": 1},
+            {"fieldname": "status", "label": "Trạng thái", "fieldtype": "Select",
+             "options": "Nháp\nĐã duyệt\nTừ chối\nĐã áp dụng", "default": "Nháp", "in_list_view": 1},
+            {"fieldname": "task_count", "label": "Số việc", "fieldtype": "Int", "read_only": 1,
+             "in_list_view": 1},
+            {"fieldname": "forecast_end", "label": "Dự báo kết thúc", "fieldtype": "Date", "read_only": 1},
+            {"fieldname": "summary", "label": "Tóm tắt", "fieldtype": "Text"},
+            {"fieldname": "assumptions", "label": "Giả định", "fieldtype": "Text"},
+            {"fieldname": "pm_comment", "label": "Ý kiến PM", "fieldtype": "Small Text"},
+            {"fieldname": "plan_json", "label": "Kế hoạch (JSON)", "fieldtype": "Code", "options": "JSON",
+             "read_only": 1},
         ],
         "permissions": _perms("System Manager", "Projects Manager", read_write=(AGENT_ROLE,)),
     },
@@ -139,7 +169,7 @@ def run_setup(erp: ErpClient):
 
     for spec in DOCTYPES:
         if erp.exists("DocType", spec["name"]):
-            log.info("Đã có DocType %s", spec["name"])
+            _ensure_fields(erp, spec)
             continue
         data = {
             "doctype": "DocType",
@@ -170,3 +200,16 @@ def run_setup(erp: ErpClient):
                 continue
             erp.insert("Custom Field", data)
             log.info("Tạo Custom Field %s", name)
+
+
+def _ensure_fields(erp: ErpClient, spec: dict):
+    """DocType đã có (từ phiên bản cũ của bộ cài): thêm các field còn thiếu, không đụng field đang có."""
+    doc = erp.get_doc("DocType", spec["name"])
+    have = {f["fieldname"] for f in doc.get("fields", [])}
+    missing = [f for f in spec["fields"] if f["fieldname"] not in have]
+    if not missing:
+        log.info("Đã có DocType %s, đủ field", spec["name"])
+        return
+    erp.update("DocType", spec["name"], {"fields": doc["fields"] + missing})
+    log.info("DocType %s: thêm %d field (%s)", spec["name"], len(missing),
+             ", ".join(f["fieldname"] for f in missing))

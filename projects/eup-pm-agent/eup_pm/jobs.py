@@ -40,7 +40,8 @@ def analyse_project(erp: ErpClient, settings: Settings, project: dict, today: da
 
 # ---------------------------------------------------------------- daily
 
-def run_daily(erp: ErpClient, settings: Settings, only: str | None = None, today: date | None = None):
+def run_daily(erp: ErpClient, settings: Settings, only: str | None = None, today: date | None = None,
+              team=None):
     today = today or date.today()
     projects = active_projects(erp, only)
     if not projects:
@@ -65,6 +66,10 @@ def run_daily(erp: ErpClient, settings: Settings, only: str | None = None, today
         if res.data_errors:
             _notify_data_errors(erp, p, res.data_errors)
         created = create_alerts(erp, settings, p, res, today)
+        if team is not None and settings.rules.get("agents", {}).get("risk", {}).get("auto_after_daily", True):
+            n = team.analyse_new_red_alerts(p["name"])
+            if n:
+                log.info("%s: Agent Rủi ro đã phân tích %d cảnh báo Đỏ", p["name"], n)
         summary.append((p["name"], res, created))
         log.info("%s | RAG %s | KH %s | TT %s | SPI %s | dự báo %s | %d cảnh báo mới (%d task)",
                  p["name"], res.rag, fmt_pct(res.planned_pct), fmt_pct(res.actual_pct),
@@ -196,6 +201,18 @@ def build_facts(project: dict, res: ProjectResult, docs: list[dict], erp: ErpCli
             ev = [f"{r.get('reference_doctype')} {r.get('reference_name')}"
                   for r in d.get("custom_evidence") or []]
             done.append({"việc": d.get("subject"), "bằng_chứng": ev or "tự khai"})
+    analyses = []
+    try:
+        analyses = [{"cảnh_báo": a.get("facts"), "nguyên_nhân": a.get("root_cause"), "tác_động": a.get("impact"),
+                     "phương_án": a.get("options"), "người_quyết": a.get("decision_owner"),
+                     "hạn_quyết": a.get("decide_by_text")}
+                    for a in erp.get_list("Nx Project Alert", filters=[
+                        ["project", "=", project["name"]], ["status", "in", ["Mới", "Đã xem"]],
+                        ["analysed_by_agent", "=", 1]],
+                        fields=["facts", "root_cause", "impact", "options", "decision_owner", "decide_by_text"],
+                        limit=5)]
+    except ErpError:
+        pass  # ERP chưa có các field phân tích (chưa chạy lại setup-erp)
     blockers = [{"việc": d.get("subject"), "vướng": d.get("custom_blocker")}
                 for d in docs if d.get("custom_blocker") and d.get("status") != "Completed"]
     return {
@@ -214,6 +231,7 @@ def build_facts(project: dict, res: ProjectResult, docs: list[dict], erp: ErpCli
         "mốc_2_tuần_tới": milestones,
         "đã_xong_trong_tuần": done,
         "vướng_mắc": blockers,
+        "phân_tích_rủi_ro": analyses,
     }
 
 

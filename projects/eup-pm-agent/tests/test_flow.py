@@ -25,12 +25,14 @@ def test_daily_completes_task_by_evidence_and_alerts(erp):
     completed = [w for w in erp.writes if w[0] == "update" and w[1] == "Task" and w[2] == "T1"
                  and w[3].get("status") == "Completed"]
     assert completed, "T1 phải tự hoàn thành vì PO đã Approved"
-    alerts = [w[2] for w in erp.writes if w[0] == "insert" and w[1] == "Nx Project Alert"]
-    codes = {(a["rule_code"], a["task"]) for a in alerts}
+    codes = {(a.rule_code, a.task) for a in res.alerts}
     assert ("R01", "T2") in codes      # Hàng về kho dự báo trễ, nằm trên đường găng
     assert ("R09", "T2") in codes      # có vướng mắc
     assert ("R02", "T5") in codes      # mốc chạy thử trễ hơn 3 ngày làm việc
     assert res.rag == "Đỏ"
+    # ALERT-2611-0001 (R01, T2) đã có từ hôm qua nên không tạo lại
+    inserted = {(w[2]["rule_code"], w[2]["task"]) for w in erp.writes if w[0] == "insert" and w[1] == "Nx Project Alert"}
+    assert ("R01", "T2") not in inserted and ("R02", "T5") in inserted
     assert any("Cảnh báo ĐỎ" in subj for _, subj in erp.emails)
 
 

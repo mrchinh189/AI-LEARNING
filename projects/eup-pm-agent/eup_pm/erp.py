@@ -21,6 +21,7 @@ WRITE_ALLOWLIST: dict[str, set[str] | None] = {
     "Comment": None,
     "Nx Project Alert": None,
     "Nx Project Status Report": None,
+    "Nx Plan Draft": None,
 }
 # Chỉ lệnh setup-erp được ghi các doctype này.
 SCHEMA_DOCTYPES = {"DocType", "Custom Field", "Role"}
@@ -32,12 +33,14 @@ class ErpError(RuntimeError):
 
 class ErpClient:
     def __init__(self, base_url: str, api_key: str, api_secret: str,
-                 dry_run: bool = True, allow_schema: bool = False, timeout: int = 30):
+                 dry_run: bool = True, allow_schema: bool = False, allow_task_create: bool = False,
+                 timeout: int = 30):
         if not base_url or not api_key or not api_secret:
             raise ErpError("Thiếu ERP_URL, ERP_API_KEY hoặc ERP_API_SECRET trong .env")
         self.base_url = base_url
         self.dry_run = dry_run
         self.allow_schema = allow_schema
+        self.allow_task_create = allow_task_create
         self.timeout = timeout
         self.session = requests.Session()
         self.session.headers.update({
@@ -98,7 +101,12 @@ class ErpClient:
                 raise ErpError(f"Agent không được ghi các field {sorted(bad)} của {doctype}")
 
     def insert(self, doctype: str, data: dict) -> dict:
-        self._check_write(doctype, data)
+        if doctype == "Task":
+            # Tạo Task chỉ được phép qua lệnh apply-plan do người chạy, sau khi PM duyệt kế hoạch.
+            if not self.allow_task_create:
+                raise ErpError("Agent không được tạo Task; dùng lệnh apply-plan sau khi PM duyệt kế hoạch")
+        else:
+            self._check_write(doctype, data)
         if self.dry_run:
             log.info("[CHẠY THỬ] tạo %s: %s", doctype, _short(data))
             return {"name": f"(chạy thử) {doctype}", **data}

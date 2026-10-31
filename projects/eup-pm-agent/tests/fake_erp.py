@@ -28,7 +28,11 @@ class FakeErp(ErpClient):
         return out
 
     def insert(self, doctype, data):
-        self._check_write(doctype, data)
+        if doctype == "Task":
+            if not self.allow_task_create:
+                raise ErpError("Agent không được tạo Task")
+        else:
+            self._check_write(doctype, data)
         self.writes.append(("insert", doctype, data))
         return {"name": f"NEW-{doctype}-{len(self.writes)}", **data}
 
@@ -87,6 +91,14 @@ def sample_docs(today: date) -> dict:
         },
         "Purchase Order": {"PO-2611-0042": {"name": "PO-2611-0042", "docstatus": 1,
                                             "workflow_state": "Approved", "status": "To Receive and Bill"}},
-        "Nx Project Alert": {},
+        "Nx Project Alert": {"ALERT-2611-0001": {
+            "name": "ALERT-2611-0001", "project": "PROJ-0001", "task": "T2", "severity": "Đỏ",
+            "rule_code": "R01", "status": "Mới", "analysed_by_agent": 0, "creation": d(-1),
+            "facts": "Việc trên đường găng 'Hàng về kho' dự báo xong 16/11/2026, trễ 3 ngày làm việc.",
+        }},
+        "Customs declaration": {"TK-1035": {"name": "TK-1035", "docstatus": 0, "workflow_state": "Chờ kiểm hóa",
+                                            "project": "PROJ-0001", "modified": d(-2)}},
+        "Comment": {},
+        "Nx Plan Draft": {},
         "Nx Project Status Report": {},
     }

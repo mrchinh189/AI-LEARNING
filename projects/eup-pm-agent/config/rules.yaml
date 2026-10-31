@@ -27,3 +27,17 @@ alerts:
 checkin:
   due_within_days: 14           # nhắc các việc có hạn trong 14 ngày tới
   stale_after_wd: 3             # hoặc lâu hơn 3 ngày làm việc chưa cập nhật
+
+# Đội AI agent. enabled: false để tắt từng agent. effort: low | medium | high.
+# max_tokens_per_run: trần token cho một phiên chạy của agent (chặn chi phí bất thường).
+agents:
+  orchestrator: { enabled: true, effort: medium, max_turns: 12, max_tokens_per_run: 600000 }
+  planner:      { enabled: true, effort: high,   max_turns: 16, max_tokens_per_run: 400000 }
+  tracker:      { enabled: true, effort: low,    max_turns: 8,  max_tokens_per_run: 150000 }
+  risk:
+    enabled: true
+    effort: high
+    max_turns: 14
+    max_tokens_per_run: 300000
+    auto_after_daily: true     # sau lệnh daily, tự phân tích cảnh báo Đỏ mới
+    max_alerts_per_run: 3      # mỗi dự án tối đa 3 cảnh báo mỗi lần chạy

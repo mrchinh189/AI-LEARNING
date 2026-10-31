@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 
 import anthropic
 
+from .agents.base import unknown_numbers
 from .config import Settings
 
 log = logging.getLogger("eup_pm.llm")
@@ -25,6 +25,7 @@ Viết đúng 3 mục, mỗi mục bắt đầu bằng tiêu đề viết hoa tr
 KẾT LUẬN: 1–2 câu. Câu đầu nêu tình trạng và lý do chính.
 QUYẾT ĐỊNH CẦN LÃNH ĐẠO: danh sách gạch đầu dòng, mỗi dòng gồm việc cần quyết, ai quyết (theo vai trò), hạn. Không có thì ghi "Chưa có".
 NHẬN ĐỊNH RỦI RO: tối đa 3 gạch đầu dòng, mỗi dòng theo khung Dữ kiện → Tác động → Phương án.
+  Nếu FACTS có "phân_tích_rủi_ro" (do Agent Rủi ro đã tra cứu ERP), dùng nguyên nhân và phương án từ đó.
 
 Quy tắc:
 - Chỉ dùng con số, ngày và mã chứng từ có trong FACTS, viết đúng như trong FACTS. Không tự tính, không làm tròn lại.
@@ -80,21 +81,3 @@ def write_narrative(settings: Settings, facts: dict) -> str:
     if unknown:
         raise NarrativeError(f"Nhận định chứa con số không có trong dữ liệu: {', '.join(unknown)}")
     return text
-
-
-_NUM = re.compile(r"\d+(?:[.,]\d+)*")
-
-
-def unknown_numbers(text: str, facts: dict) -> list[str]:
-    """Các con số xuất hiện trong `text` nhưng không xuất hiện ở bất kỳ đâu trong `facts`."""
-    source = json.dumps(facts, ensure_ascii=False)
-    known = set(_NUM.findall(source))
-    # Cho phép số đếm nhỏ (1, 2, 3 phương án...) và các phần của ngày/số đã có.
-    for k in list(known):
-        known.update(re.split(r"[.,/]", k))
-    out = []
-    for n in _NUM.findall(text):
-        if n in known or (n.isdigit() and int(n) <= 10):
-            continue
-        out.append(n)
-    return sorted(set(out))
