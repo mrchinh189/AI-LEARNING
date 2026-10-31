@@ -1,5 +1,7 @@
 # AI Agent Team quản lý tiến độ công việc văn phòng — giải pháp cho EuP Group
 
+> **Bắt đầu triển khai:** xem [Sổ tay triển khai từng bước](./RUNBOOK.md) và mã nguồn MVP ở [`projects/eup-agents`](../../projects/eup-agents).
+>
 > **Phạm vi:** khối văn phòng của EuP Group (văn phòng tập đoàn và các công ty thành viên) · **Phiên bản:** 1.0 · 31/10/2026
 > **Quy ước:** `[CẦN XÁC NHẬN: …]` là điểm cần EuP chốt; **MINH HỌA** là ví dụ, không phải số liệu thật; mọi số "ước tính" đều ghi giả định.
 
@@ -144,8 +146,8 @@ ERPNext đã có `Task` (subject, status, priority, exp_end_date, project, compa
 
 | Field | Kiểu | Ý nghĩa |
 |---|---|---|
-| `eup_company` | Link → Company | Pháp nhân chịu việc (lọc báo cáo, phân quyền) |
-| `eup_department` | Link → Department | Phòng ban |
+| `company` *(trường chuẩn)* | Link → Company | Pháp nhân chịu việc (lọc báo cáo, phân quyền) |
+| `department` *(trường chuẩn)* | Link → Department | Phòng ban |
 | `eup_assigned_by` | Link → User | Người giao việc |
 | `eup_source` | Select: `Email / Chat / Họp / Công văn / ERP tự sinh / Thủ công` | Nguồn phát sinh |
 | `eup_source_ref` | Data / Dynamic Link | Mã email, link biên bản, hoặc chứng từ ERP gốc (VD `PO-HN-2026-00123`) |
@@ -302,7 +304,7 @@ bóc tách các đầu việc thành Task nháp trên erp.eup.vn.
 Quy tắc:
 1. Chỉ tạo việc khi có yêu cầu hành động rõ ràng. Thông báo, cảm ơn, CC để biết → không tạo việc.
 2. Mỗi việc gồm: subject (động từ + đối tượng + kết quả, ≤ 120 ký tự), owner, hạn,
-   eup_definition_of_done, eup_company, eup_department, priority.
+   eup_definition_of_done, company, department, priority.
 3. Hạn: lấy từ nội dung; nếu không có, áp bảng SLA và ghi "hạn do agent đề xuất".
    Quy đổi "cuối tuần", "đầu tháng sau" theo lịch làm việc của công ty (dùng holiday_check).
 4. Pháp nhân: suy ra từ tên công ty, mã kho, tiền tố mã chứng từ, chữ ký. Không chắc → để trống
@@ -322,8 +324,8 @@ Quy tắc:
   "exp_end_date": "2026-11-05",
   "due_suggested_by_agent": false,
   "priority": "High",
-  "eup_company": "[CẦN XÁC NHẬN: tên Company trên ERP]",
-  "eup_department": "Tài chính - Kế toán",
+  "company": "[CẦN XÁC NHẬN: tên Company trên ERP]",
+  "department": "Tài chính - Kế toán",
   "eup_definition_of_done": "Biên bản đối chiếu có xác nhận của 2 bên, chênh lệch = 0 hoặc có giải trình",
   "eup_source": "Email",
   "eup_source_ref": "<message-id>",

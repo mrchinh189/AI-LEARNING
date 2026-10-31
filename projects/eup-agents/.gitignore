@@ -1,0 +1,6 @@
+.env
+config/org.json
+logs/
+reports/
+.venv/
+__pycache__/
