@@ -53,6 +53,12 @@ Các repo dạng danh sách (`awesome-*`), skill pack, prompt và khóa học kh
 
 \* Crawl4AI: Apache-2.0 kèm điều khoản bắt buộc ghi công ở cuối `LICENSE`.
 
+### 6. Kiến trúc tham chiếu (ghép nhiều repo)
+
+| Tài liệu | Tóm tắt |
+|---|---|
+| [Chatbot + AI Agent Team](./chatbot-agent-team.md) | Chatbot đa kênh có router tách đường nhanh (FAQ + RAG) và đường sâu (orchestrator điều phối các agent Research, Document, Data, Action, Reviewer qua hàng đợi), tool chuẩn hóa qua MCP, n8n làm lớp tích hợp, policy + duyệt cho hành động ghi, kèm lộ trình triển khai. |
+
 ## So sánh nhanh theo nhóm
 
 ### Web scraping
