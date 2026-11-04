@@ -59,7 +59,7 @@ Tài liệu nhóm này không phân tích một repo, mà kết hợp các patte
 
 | Giải pháp | Hệ thống đích | Tóm tắt |
 |---|---|---|
-| [AI tự động hóa thao tác ERPNext](./erpnext-ai-automation.md) | ERPNext / Frappe | Agent gọi REST API của Frappe qua MCP server có tool hẹp, policy engine tách khỏi model, mặc định chỉ tạo Draft và có người duyệt; nhập hóa đơn từ email/XML/PDF, hỏi đáp số liệu, đối soát ngân hàng, nhắc nợ. |
+| [AI tự động hóa thao tác ERPNext](./erpnext-ai-automation.md) | ERPNext / Frappe | Agent gọi REST API của Frappe qua MCP server có tool hẹp, policy engine tách khỏi model, mặc định chỉ tạo Draft và có người duyệt; nhập hóa đơn từ email/XML/PDF, hỏi đáp số liệu, đối soát ngân hàng, nhắc nợ. Có [thiết kế kỹ thuật chi tiết](./erpnext-ai-automation/README.md) cho nền tảng chung và 7 use case. |
 
 ## So sánh nhanh theo nhóm
 

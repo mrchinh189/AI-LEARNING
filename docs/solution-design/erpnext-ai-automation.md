@@ -4,6 +4,7 @@
 > **Hệ thống đích:** [ERPNext](https://github.com/frappe/erpnext) trên [Frappe Framework](https://github.com/frappe/frappe) (v15 trở lên) · **License ERPNext:** GPL-3.0
 > **Nhóm:** AI Agent + Nền tảng workflow + Xử lý tài liệu
 > **Trạng thái:** Đề xuất (v1.0, 11/2026) — các chi tiết API cần đối chiếu với phiên bản Frappe/ERPNext đang chạy.
+> **Thiết kế kỹ thuật chi tiết:** [nền tảng chung và từng use case](./erpnext-ai-automation/README.md)
 
 ## 1. Tóm tắt
 
