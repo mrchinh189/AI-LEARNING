@@ -1,0 +1,62 @@
+erDiagram
+  CONTACT ||--o{ DEAL : has
+  CONTACT ||--o{ TICKET : opens
+  CONTACT ||--o{ ORDER : places
+  ORDER ||--o{ INVOICE : billed_by
+  ORDER ||--o{ PAYMENT : paid_by
+  EVENT ||--o| TASK : triggers
+  TASK ||--o{ AGENT_RUN : executed_by
+  AGENT_RUN ||--o{ TOOL_CALL : makes
+  AGENT_RUN ||--o{ LLM_CALL : makes
+  TASK ||--o{ APPROVAL : requires
+  AGENT ||--o{ AGENT_RUN : performs
+  AGENT ||--o{ POLICY_BINDING : governed_by
+  KB_DOCUMENT ||--o{ KB_CHUNK : split_into
+  CONTACT { uuid id PK
+    text email
+    text name
+    text company
+    text stage
+    int lead_score
+    jsonb attrs
+    timestamptz created_at }
+  TASK { uuid id PK
+    text type
+    text dept
+    text status
+    int priority
+    uuid parent_id FK
+    jsonb input
+    jsonb output
+    timestamptz due_at }
+  AGENT_RUN { uuid id PK
+    uuid task_id FK
+    text agent_id FK
+    text status
+    int steps
+    numeric cost_usd
+    text trace_id }
+  APPROVAL { uuid id PK
+    uuid task_id FK
+    text action
+    text risk_level
+    jsonb proposal
+    text decision
+    text decided_by
+    timestamptz expires_at }
+  TOOL_CALL { uuid id PK
+    uuid run_id FK
+    text tool
+    jsonb args_redacted
+    text result_status
+    int latency_ms }
+  AGENT { text id PK
+    text dept
+    text model_profile
+    text autonomy_level
+    int version }
+  KB_CHUNK { uuid id PK
+    uuid doc_id FK
+    text content
+    vector embedding
+    text classification }

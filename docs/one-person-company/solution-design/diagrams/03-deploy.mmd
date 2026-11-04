@@ -1,0 +1,28 @@
+flowchart LR
+  subgraph USER["Thiết bị Founder"]
+    phone["Điện thoại / Laptop<br/>Console PWA · Web Push"]
+    dev["Laptop dev<br/>Coding agent CLI"]
+  end
+  subgraph CI["GitHub"]
+    gha["GitHub Actions<br/>test · build image · push GHCR"]
+  end
+  subgraph VPS1["VPS-1 · App node (4 vCPU / 8 GB)"]
+    app["<b>docker compose: app</b><br/>caddy · console · core-api · gateway<br/>orchestrator · agent-worker ×N · scheduler<br/>mcp-gateway · llm-gateway · policy (OPA)<br/>n8n-main · n8n-worker ×2"]
+  end
+  subgraph VPS2["VPS-2 · Data node (4 vCPU / 8 GB)"]
+    data[("<b>docker compose: data</b><br/>postgres 16 + pgvector · redis 7 · minio")]
+    obs["<b>docker compose: obs</b><br/>otel-collector · prometheus · loki<br/>grafana · langfuse"]
+  end
+  subgraph EXT["Dịch vụ bên ngoài"]
+    bk[("Backup off-site<br/>S3 khác vùng · restic")]
+    up["Uptime monitor<br/>bên ngoài"]
+    sb["Sandbox coding agent<br/>(container dùng một lần)"]
+  end
+  phone -- "HTTPS 443" --> app
+  dev -- "git push" --> gha
+  gha -- "SSH deploy · compose pull/up" --> app
+  app -- "WireGuard 51820<br/>5432 · 6379 · 9000 · 4317" --> data
+  app -.-> obs
+  data -- "restic nightly + WAL" --> bk
+  up -. "health check /healthz" .-> app
+  app -- "spawn job" --> sb

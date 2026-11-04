@@ -1,0 +1,17 @@
+stateDiagram-v2
+  [*] --> NEW
+  NEW --> PLANNED: orchestrator lập kế hoạch
+  PLANNED --> RUNNING: worker nhận
+  RUNNING --> WAITING_APPROVAL: policy = require_approval
+  WAITING_APPROVAL --> RUNNING: approved / edited
+  WAITING_APPROVAL --> CANCELLED: rejected
+  WAITING_APPROVAL --> EXPIRED: quá hạn duyệt
+  RUNNING --> RETRYING: lỗi tạm thời
+  RETRYING --> RUNNING: backoff
+  RETRYING --> FAILED: vượt số lần thử
+  RUNNING --> DONE: hoàn thành + kiểm tra đầu ra
+  FAILED --> ESCALATED: báo Founder
+  DONE --> [*]
+  CANCELLED --> [*]
+  EXPIRED --> [*]
+  ESCALATED --> [*]

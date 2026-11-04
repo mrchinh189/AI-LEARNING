@@ -1,0 +1,14 @@
+flowchart TB
+  A["Nhận task<br/>+ AgentSpec"] --> B["Nạp ngữ cảnh<br/>SOP · KB · CRM · memory"]
+  B --> C{"LLM: lập kế hoạch<br/>/ chọn bước tiếp"}
+  C -- "gọi tool" --> D["MCP Gateway<br/>kiểm tra scope"]
+  D --> E{"Policy check"}
+  E -- allow --> F["Thực thi tool"]
+  E -- "require_approval" --> G["Tạo APPROVAL<br/>tạm dừng (checkpoint)"]
+  G -- "duyệt" --> F
+  F --> H["Ghi kết quả<br/>(dữ liệu ngoài = untrusted)"]
+  H --> C
+  C -- "hoàn tất" --> I["Validator<br/>schema + luật nghiệp vụ"]
+  I -- "đạt" --> J["DONE · báo cáo · chi phí"]
+  I -- "không đạt" --> C
+  C -- "vượt bước / ngân sách" --> K["ESCALATED"]
