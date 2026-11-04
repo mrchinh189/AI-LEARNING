@@ -96,3 +96,7 @@ Những ý tưởng trên đã xuất hiện trong kiến trúc của một số
 
 - Video tóm tắt (tiếng Việt): https://www.youtube.com/watch?v=ToRL6DVKNGY
 - Phỏng vấn gốc: Peter Yang — *"We Built Grok Bot. Here Are Our 14 Best Bots | Peng Zheng & Lauren Tan"*
+
+## 6. Hiện thực hoá
+
+Prototype đội AI theo đúng 6 nguyên tắc này: [`projects/ai-team`](../../projects/ai-team/README.md).
