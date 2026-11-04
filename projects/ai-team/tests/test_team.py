@@ -15,7 +15,8 @@ from ai_team.grader import Grade
 from ai_team.room import load_room, post
 from ai_team.store import Workspace
 
-PROJECT = Path(__file__).resolve().parent.parent
+# Đội cố định cho test, độc lập với team/ mà người dùng tuỳ biến.
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
 _ids = itertools.count()
 
 
@@ -45,8 +46,8 @@ class FakeLLM:
 @pytest.fixture
 def make_rt(tmp_path):
     def _make(scripts, grades=None, approve=False):
-        team = load_team(PROJECT / "team" / "team.json")
-        ws = Workspace(tmp_path / "ws", seed_skills=PROJECT / "team" / "skills")
+        team = load_team(FIXTURES / "team.json")
+        ws = Workspace(tmp_path / "ws", seed_skills=FIXTURES / "skills")
         op = AutoOperator(approve_all=approve)
         return Runtime(team, ws, FakeLLM(scripts, grades), op), op
 
