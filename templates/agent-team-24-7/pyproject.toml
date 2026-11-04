@@ -1,0 +1,23 @@
+[project]
+name = "agent-team-24-7"
+version = "0.1.0"
+description = "Đội AI agent chạy 24/7, điều khiển qua chatbot"
+requires-python = ">=3.11"
+dependencies = [
+  "python-telegram-bot>=21",
+  "redis>=5",
+  "psycopg[binary]>=3.1",
+  "pyyaml>=6",
+  "pydantic>=2",
+]
+
+[project.optional-dependencies]
+langgraph = ["langgraph", "langgraph-checkpoint-postgres"]
+dev = ["pytest>=8"]
+
+[tool.setuptools]
+packages = ["gateway", "orchestrator", "board", "runtime", "agents", "policy", "memory", "supervisor", "observability"]
+py-modules = ["config", "main"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

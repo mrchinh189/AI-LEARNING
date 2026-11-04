@@ -1,0 +1,28 @@
+# Agent registry: planner chọn agent theo `role` và `description`.
+# "Tự bổ sung agent": planner đề xuất mục mới -> người dùng duyệt qua chat -> thêm vào đây.
+agents:
+  planner:
+    description: Phân rã mục tiêu thành task có phụ thuộc và tiêu chí nghiệm thu.
+    model: strong
+    prompt: prompts/planner.md
+    tools: [board.read, board.write, memory.search]
+  researcher:
+    description: Tìm kiếm, đọc web và tài liệu, tổng hợp có trích nguồn.
+    model: fast
+    prompt: prompts/researcher.md
+    tools: [web.search, web.fetch, memory.search]
+  writer:
+    description: Viết nội dung (bài blog, email, báo cáo) theo brief.
+    model: fast
+    prompt: prompts/writer.md
+    tools: [memory.search, docs.write]
+  coder:
+    description: Viết và chạy code trong sandbox, tạo PR.
+    model: strong
+    prompt: prompts/coder.md
+    tools: [sandbox.exec, git.pr]
+  reviewer:
+    description: Chấm kết quả theo acceptance_criteria, trả về pass/fail và góp ý.
+    model: strong
+    prompt: prompts/reviewer.md
+    tools: [web.fetch]
