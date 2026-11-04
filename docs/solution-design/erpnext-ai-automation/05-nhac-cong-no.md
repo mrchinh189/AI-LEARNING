@@ -17,20 +17,11 @@
 
 ## 2. Phạm vi, đầu vào, đầu ra, điều kiện tiên quyết
 
-- **Trong phạm vi:**
-  - Quét công nợ phải thu theo lịch (mặc định 08:00 thứ Hai và thứ Năm, theo từng Company).
-  - Chọn khách cần nhắc, chọn chiến lược (mức nhắc, kênh, giọng văn), soạn thư cá nhân hóa.
-  - Đính kèm sao kê công nợ PDF; tạo `Dunning` Draft khi quy định yêu cầu (nhắc lần 3, có phí/lãi phạt).
-  - Gửi sau khi duyệt, ghi `Communication` gắn vào Customer/Sales Invoice.
-  - Đọc thư trả lời của khách, phân loại, tạo Comment/ToDo cho người phụ trách.
+- **Trong phạm vi:** quét công nợ theo lịch (mặc định 08:00 thứ Hai và thứ Năm, theo từng Company); chọn khách và chiến lược (mức, kênh, giọng văn); soạn thư cá nhân hóa kèm sao kê PDF; tạo `Dunning` Draft khi quy định yêu cầu (nhắc lần 3, có phí/lãi phạt); gửi sau khi duyệt và ghi `Communication`; phân loại thư trả lời, tạo Comment/ToDo cho người phụ trách.
 - **Ngoài phạm vi:** khởi kiện, chuyển nợ cho bên thu hộ, tự ghi nhận thanh toán (thuộc UC04), thay đổi hạn mức tín dụng.
 - **Đầu vào:** báo cáo `Accounts Receivable`, lịch sử thanh toán (`Payment Ledger Entry`), thông tin liên hệ (`Contact`, `Customer.email_id`, `mobile_no`), cấu hình chiến lược nhắc nợ (`AI Dunning Policy`), thư trả lời trong hộp thư AR.
 - **Đầu ra:** thư nhắc nợ (email / Zalo ZNS) đã gửi; `Communication`; `Dunning` Draft hoặc đã submit; `ToDo` cho nhân viên; báo cáo tuần.
-- **Điều kiện tiên quyết:**
-  - Sales Invoice có `payment_schedule` / `due_date` đúng; khách có liên hệ nhận hóa đơn (Contact có `is_billing_contact` hoặc email trên Customer).
-  - Email Account gửi đi của bộ phận AR đã cấu hình trong ERPNext (để thư đi qua ERPNext và có `Communication`).
-  - Nếu dùng Zalo: tài khoản Zalo OA và mẫu ZNS đã được duyệt (tin nhắn ZNS dùng mẫu đăng ký trước — cần đối chiếu chính sách Zalo hiện hành).
-  - `Dunning Type` cho từng mức nhắc đã tạo (phí, lãi suất, nội dung theo ngôn ngữ).
+- **Điều kiện tiên quyết:** Sales Invoice có `payment_schedule` / `due_date` đúng; khách có liên hệ nhận hóa đơn (Contact có `is_billing_contact` hoặc email trên Customer); Email Account gửi đi của AR đã cấu hình trong ERPNext; `Dunning Type` cho từng mức đã tạo (phí, lãi suất, nội dung theo ngôn ngữ); nếu dùng Zalo thì cần Zalo OA và mẫu ZNS đã duyệt (cần đối chiếu chính sách Zalo hiện hành).
 
 ## 3. Luồng xử lý chi tiết
 
@@ -127,17 +118,9 @@ Trạng thái lưu ở `AI Dunning State` (một bản ghi cho mỗi Customer ×
 ### 4.1 Schema Pydantic
 
 ```python
-class ReceivableLine(BaseModel):
-    customer: str
-    voucher_type: Literal["Sales Invoice", "Journal Entry"]
-    voucher_no: str
-    posting_date: date
-    due_date: date
-    invoiced: Decimal
-    paid: Decimal
-    outstanding: Decimal
-    currency: str
-    age_days: int                    # theo due_date
+class ReceivableLine(BaseModel):     # một dòng của report Accounts Receivable
+    customer: str; voucher_type: str; voucher_no: str; due_date: date
+    outstanding: Decimal; currency: str; age_days: int
 
 class CustomerPaymentProfile(BaseModel):
     customer: str
@@ -315,19 +298,9 @@ Ví dụ tool call gửi sau khi duyệt:
 ```yaml
 # trích policy.yaml cho UC05
 rules:
-  - id: uc05-read
-    use_case: UC05
-    tool: [run_report, search_documents, get_document, get_statement_pdf]
-    decision: allow
-  - id: uc05-dunning-draft
-    use_case: UC05
-    tool: create_draft
-    doctypes: [Dunning]
-    decision: allow
-  - id: uc05-notes
-    use_case: UC05
-    tool: [add_comment, create_todo]
-    decision: allow
+  - {id: uc05-read, use_case: UC05, tool: [run_report, search_documents, get_document, get_statement_pdf], decision: allow}
+  - {id: uc05-dunning-draft, use_case: UC05, tool: create_draft, doctypes: [Dunning], decision: allow}
+  - {id: uc05-notes, use_case: UC05, tool: [add_comment, create_todo], decision: allow}
   - id: uc05-send-l2-friendly
     use_case: UC05
     tool: send_email
@@ -341,17 +314,8 @@ rules:
       sent_to_customer_last_7d_eq: 0
       is_working_hours: true
     decision: allow
-  - id: uc05-send-default
-    use_case: UC05
-    tool: [send_email, send_zalo_zns]
-    decision: require_approval
-    approvers_role: Accounts User
-  - id: uc05-submit-dunning
-    use_case: UC05
-    tool: submit_document
-    doctypes: [Dunning]
-    decision: require_approval
-    approvers_role: Accounts Manager
+  - {id: uc05-send-default, use_case: UC05, tool: [send_email, send_zalo_zns], decision: require_approval, approvers_role: Accounts User}
+  - {id: uc05-submit-dunning, use_case: UC05, tool: submit_document, doctypes: [Dunning], decision: require_approval, approvers_role: Accounts Manager}
 limits:
   uc05_max_messages_per_run: 200
 ```
@@ -365,7 +329,6 @@ limits:
 | Khách đã trả giữa lúc soạn và lúc duyệt | Trước khi gửi chạy lại `refresh_outstanding`; nếu nợ thay đổi thì hủy thư, báo trên thẻ duyệt |
 | Hóa đơn có Credit Note chưa phân bổ | Loại hóa đơn khỏi thư; ToDo cho kế toán phân bổ |
 | Nhiều Company cùng một khách | Mỗi Company một thư, chữ ký và tài khoản ngân hàng theo Company |
-| Ngoại tệ | Hiển thị theo tiền tệ hóa đơn, không quy đổi |
 | LLM lỗi / hết hạn mức | Dùng mẫu tĩnh Jinja theo mức, gắn nhãn "mẫu dự phòng" |
 | Không render được sao kê PDF | Gửi không đính kèm, thêm bảng hóa đơn trong thân thư, ghi cảnh báo |
 | Người duyệt không phản hồi trong 48 giờ | Thư hết hạn, lần chạy sau soạn lại theo số liệu mới |
@@ -373,14 +336,9 @@ limits:
 
 ## 9. Giao diện người dùng
 
-- **Thẻ duyệt theo lô** (Raven/Slack/Teams), mỗi account_manager một thẻ:
-  - Tiêu đề: "12 thư nhắc nợ chờ duyệt — tổng quá hạn 1,84 tỷ ₫".
-  - Bảng: khách · mức · số hóa đơn · tổng nợ · kênh · cảnh báo (ví dụ "có Bank Transaction 120.000.000 ₫ chưa đối soát, có thể đã trả").
-  - Nút: "Gửi tất cả", "Xem & sửa từng thư" (mở trang `/approvals/{token}` có trình soạn thảo), "Bỏ khách này", "Tạm dừng nhắc khách này 14 ngày".
-- **Trong ERPNext:**
-  - Workspace "AI — Công nợ": danh sách `AI Dunning State`, số thư gửi trong tuần, khách đang `DISPUTED`.
-  - Tab Communication trên Customer hiển thị thư đã gửi và thư trả lời (ERPNext có sẵn).
-  - Báo cáo tuần gửi trưởng AR: tổng quá hạn theo tuổi nợ, thay đổi so với tuần trước, top khách cần gọi điện.
+- **Thẻ duyệt theo lô** (Raven/Slack/Teams), mỗi account_manager một thẻ: tiêu đề "12 thư nhắc nợ chờ duyệt — tổng quá hạn 1,84 tỷ ₫"; bảng khách · mức · số hóa đơn · tổng nợ · kênh · cảnh báo (ví dụ "có Bank Transaction 120.000.000 ₫ chưa đối soát, có thể đã trả"); nút "Gửi tất cả", "Xem & sửa từng thư" (trang `/approvals/{token}`), "Bỏ khách này", "Tạm dừng nhắc 14 ngày".
+- **Trong ERPNext:** workspace "AI — Công nợ" (danh sách `AI Dunning State`, số thư trong tuần, khách `DISPUTED`); tab Communication có sẵn trên Customer hiển thị thư đi và thư trả lời.
+- **Báo cáo tuần** cho trưởng AR: tổng quá hạn theo tuổi nợ, thay đổi so với tuần trước, top khách cần gọi điện.
 
 ## 10. Kiểm thử & eval
 

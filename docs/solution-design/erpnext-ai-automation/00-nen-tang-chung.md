@@ -169,6 +169,19 @@ def verify_frappe_signature(body: bytes, header_sig: str, secret: str) -> bool:
 
 Tool `cancel_document` và `delete_document` **không được cài** trong bản production.
 
+**Tool bổ sung theo use case** (đặc tả chi tiết trong tài liệu UC tương ứng):
+
+| Tool | Loại | Use case |
+|---|---|---|
+| `import_bank_transactions` | write | [UC04](./04-doi-soat-ngan-hang.md) |
+| `get_bank_reconciliation_candidates` | read | [UC04](./04-doi-soat-ngan-hang.md) |
+| `get_statement_pdf` | read | [UC05](./05-nhac-cong-no.md) |
+| `create_todo` | write-light | [UC05](./05-nhac-cong-no.md) |
+| `send_zalo_zns` | sensitive | [UC05](./05-nhac-cong-no.md) |
+| `propose_duplicate`, `propose_fix` | write-light | [UC06](./06-lam-sach-master-data.md) |
+| `get_workflow_transitions` | read | [UC07](./07-tom-tat-ho-tro-duyet.md) |
+| `save_approval_brief` | write-light | [UC07](./07-tom-tat-ho-tro-duyet.md) |
+
 > Tên hàm mapper/reconcile của ERPNext thay đổi giữa các phiên bản. Mỗi tool bọc chúng phải có test hợp đồng (contract test) chạy với site staging cùng phiên bản production.
 
 ### 6.3 Ví dụ schema tool (JSON Schema mà model nhìn thấy)
@@ -304,6 +317,8 @@ Mỗi luật có `rule_id`, được kiểm thử bằng bảng ca kiểm thử 
 | `AI Action Log` | Thường, chỉ đọc với người dùng | xem [tài liệu tổng quan §6.2](../erpnext-ai-automation.md#62-custom-doctype-ai-action-log) | Kiểm toán |
 | `AI Mapping` | Thường | `kind` (supplier_item, customer_item, uom, tax, account, bank_party), `party`, `external_key`, `erp_value`, `hits`, `source` (human/ai), `confirmed` | Bộ nhớ ánh xạ học từ người dùng |
 | `AI Settings` | Single | `enabled_use_cases`, `default_autonomy`, `approval_timeout_hours`, `gateway_url`, `webhook_secret` (Password) | Cấu hình |
+
+DocType bổ sung theo use case (cùng nằm trong app `ai_ops`): `AI Bank Match` ([UC04](./04-doi-soat-ngan-hang.md)); `AI Dunning Policy`, `AI Dunning State` ([UC05](./05-nhac-cong-no.md)); `AI Duplicate Candidate`, `AI Duplicate Exclusion`, `AI Normalization Suggestion` ([UC06](./06-lam-sach-master-data.md)); `AI Approval Config`, `AI Approval Brief` ([UC07](./07-tom-tat-ho-tro-duyet.md)).
 
 `AI Mapping` bổ sung cho `Item Supplier.supplier_part_no` và `Item Customer Detail.ref_code` có sẵn của ERPNext: mapping item được ghi vào **cả hai** — bảng chuẩn của ERPNext (để người dùng thấy trong form Item) và `AI Mapping` (để lưu thêm tên hàng gốc, số lần dùng, độ tin cậy).
 

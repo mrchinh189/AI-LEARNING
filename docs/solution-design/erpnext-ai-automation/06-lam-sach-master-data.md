@@ -15,16 +15,9 @@
 | Customer/Supplier có MST sai định dạng | 0 với bản ghi đang hoạt động |
 | Thời gian chạy lô ban đêm (50.000 Item, 20.000 đối tác) | < 2 giờ |
 
-Lợi ích gián tiếp: các UC khác (UC01 khớp NCC theo MST, UC02 khớp khách, UC04 khớp đối tượng ngân hàng) chính xác hơn khi master data sạch.
-
 ## 2. Phạm vi, đầu vào, đầu ra, điều kiện tiên quyết
 
-- **Trong phạm vi:**
-  - Phát hiện bản ghi trùng: Customer, Supplier, Item (và Contact/Address gắn với chúng).
-  - Chuẩn hóa: tên pháp nhân, viết hoa, khoảng trắng; số điện thoại; email; UOM; Item Group; Customer/Supplier Group.
-  - Kiểm tra MST: định dạng, chữ số kiểm tra (cảnh báo), trùng MST giữa nhiều bản ghi; đối chiếu nguồn ngoài (tùy chọn).
-  - Đề xuất merge và đề xuất sửa; theo dõi người dùng xử lý.
-  - **Cửa chặn khi tạo mới:** cảnh báo ngay khi người dùng tạo Customer/Supplier/Item có khả năng trùng.
+- **Trong phạm vi:** phát hiện trùng Customer, Supplier, Item (kèm Contact/Address); chuẩn hóa tên pháp nhân, số điện thoại, email, UOM, Item Group, Customer/Supplier Group; kiểm tra MST (định dạng, chữ số kiểm tra dạng cảnh báo, trùng MST, nguồn ngoài tùy chọn); đề xuất merge/sửa và theo dõi xử lý; **cửa chặn khi tạo mới** cảnh báo ngay khi người dùng tạo bản ghi có khả năng trùng.
 - **Ngoài phạm vi:** tự động merge, tự động sửa field có ảnh hưởng kế toán (tài khoản mặc định, thuế), xóa bản ghi, dọn dữ liệu giao dịch.
 - **Đầu vào:** toàn bộ bản ghi master (đọc theo lô, chỉ field cần thiết), Contact/Address liên kết, số giao dịch liên quan (để chọn bản ghi "giữ lại").
 - **Đầu ra:** `AI Duplicate Candidate` (cặp/cụm trùng có điểm và bằng chứng), `AI Normalization Suggestion` (đề xuất sửa từng field), báo cáo tuần, cảnh báo khi tạo mới.
@@ -316,18 +309,9 @@ Ví dụ tool call ghi đề xuất:
 ```yaml
 # trích policy.yaml cho UC06
 rules:
-  - id: uc06-read
-    use_case: UC06
-    tool: [search_documents, get_document, count_documents]
-    decision: allow
-  - id: uc06-propose
-    use_case: UC06
-    tool: [propose_duplicate, propose_fix]
-    decision: allow
-  - id: uc06-deny-writes
-    use_case: UC06
-    tool: [create_draft, update_draft, submit_document, apply_workflow_action, send_email]
-    decision: deny
+  - {id: uc06-read, use_case: UC06, tool: [search_documents, get_document, count_documents], decision: allow}
+  - {id: uc06-propose, use_case: UC06, tool: [propose_duplicate, propose_fix], decision: allow}
+  - {id: uc06-deny-writes, use_case: UC06, tool: [create_draft, update_draft, submit_document, apply_workflow_action, send_email], decision: deny}
 limits:
   uc06_max_proposals_per_run: 2000
   uc06_read_rate_per_sec: 5        # chạy ban đêm nhưng vẫn giới hạn để không ảnh hưởng backup
@@ -351,9 +335,7 @@ Việc **áp dụng** đề xuất (set_value, Rename/Merge) do người dùng t
 ## 9. Giao diện người dùng
 
 - **List view `AI Duplicate Candidate`** trong workspace "AI — Dữ liệu gốc": lọc theo DocType, điểm, trạng thái, người phụ trách; cột "Số giao dịch bị ảnh hưởng".
-- **Form đề xuất:** bảng so sánh song song các bản ghi (field khác nhau được tô màu), `risk_notes`, lý do của LLM; nút:
-  - "Mở bản ghi cần gộp" → mở form bản ghi phụ, hướng dẫn: *Menu → Rename → nhập tên bản ghi giữ lại → tích Merge with existing*.
-  - "Xác nhận trùng", "Không trùng (nhập lý do)".
+- **Form đề xuất:** bảng so sánh song song các bản ghi (field khác nhau được tô màu), `risk_notes`, lý do của LLM; nút "Mở bản ghi cần gộp" (kèm hướng dẫn *Menu → Rename → nhập tên bản ghi giữ lại → tích Merge with existing*), "Xác nhận trùng", "Không trùng (nhập lý do)".
 - **Cửa chặn khi tạo mới:** hộp cảnh báo trên form: "Có thể trùng với **CTY TNHH An Phát (CUST-00042)** — cùng MST 0312345678. [Mở bản ghi] [Vẫn tạo mới]". Khi `block_on_tax_id_duplicate=1`, trùng MST sẽ chặn lưu.
 - **Báo cáo tuần** cho data steward: số cụm mới, số đã xử lý, top 10 cụm ảnh hưởng nhiều giao dịch nhất, tỷ lệ MST lỗi.
 
