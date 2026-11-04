@@ -53,6 +53,14 @@ Các repo dạng danh sách (`awesome-*`), skill pack, prompt và khóa học kh
 
 \* Crawl4AI: Apache-2.0 kèm điều khoản bắt buộc ghi công ở cuối `LICENSE`.
 
+### 6. Giải pháp ứng dụng (tự thiết kế)
+
+Tài liệu nhóm này không phân tích một repo, mà kết hợp các pattern ở trên thành giải pháp cho một bài toán cụ thể. Vẫn theo cấu trúc 12 mục.
+
+| Giải pháp | Hệ thống đích | Tóm tắt |
+|---|---|---|
+| [AI tự động hóa thao tác ERPNext](./erpnext-ai-automation.md) | ERPNext / Frappe | Agent gọi REST API của Frappe qua MCP server có tool hẹp, policy engine tách khỏi model, mặc định chỉ tạo Draft và có người duyệt; nhập hóa đơn từ email/XML/PDF, hỏi đáp số liệu, đối soát ngân hàng, nhắc nợ. Có [thiết kế kỹ thuật chi tiết](./erpnext-ai-automation/README.md) cho nền tảng chung và 7 use case. |
+
 ## So sánh nhanh theo nhóm
 
 ### Web scraping
