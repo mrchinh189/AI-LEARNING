@@ -1,0 +1,31 @@
+sequenceDiagram
+  autonumber
+  participant F as Form/Website
+  participant G as Ingestion Gateway
+  participant Q as Redis Queue
+  participant O as Orchestrator
+  participant S as Sales Agent
+  participant M as MCP Gateway
+  participant P as Policy Service
+  participant C as Founder Console
+  F->>G: POST /webhooks/form (HMAC)
+  G->>G: Xác thực chữ ký, chuẩn hóa, dedupe
+  G->>Q: publish event lead.created
+  Q->>O: consume event
+  O->>O: Tạo TASK(sales.qualify_lead)
+  O->>S: giao task + context (CRM, ICP)
+  S->>M: crm.search / web.research(company)
+  M-->>S: dữ liệu làm giàu
+  S->>S: chấm điểm lead, soạn email cá nhân hóa
+  S->>P: check(action=email.send, risk)
+  alt Lead score < 70 (rủi ro thấp, L2)
+    P-->>S: allow
+    S->>M: email.send + crm.update
+  else Lead lớn / có báo giá (L1)
+    P-->>S: require_approval
+    S->>C: tạo APPROVAL (nháp email)
+    C-->>P: Founder duyệt / sửa
+    P->>M: email.send (bản đã duyệt)
+  end
+  S-->>O: kết quả + chi phí
+  O->>Q: publish task.completed

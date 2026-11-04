@@ -1,0 +1,62 @@
+<html><head><meta charset="utf-8"><style>
+body{margin:0;font-family:'Liberation Sans',Arial;background:#fff;width:1500px}
+.w{padding:24px}
+h1{font-size:26px;color:#1F3864;margin:0 0 14px;text-align:center}
+.row{display:flex;gap:14px;margin-bottom:12px;align-items:stretch}
+.zone{border:2px dashed #9FB3D1;border-radius:12px;padding:10px 12px 12px;background:#F7F9FC;flex:1}
+.zt{font-weight:bold;color:#2E5597;font-size:15px;margin-bottom:8px}
+.bx{display:flex;gap:10px;flex-wrap:wrap}
+.c{flex:1;min-width:150px;border-radius:8px;padding:9px 10px;background:#DCE6F2;border:1.5px solid #2E5597;font-size:15px;text-align:center}
+.c b{display:block;color:#1F3864;margin-bottom:3px}
+.c span{font-size:12.5px;color:#444}
+.db{background:#E8F3EF;border-color:#2F8F83}.db b{color:#1d5f57}
+.ob{background:#F3EEE6;border-color:#8A5A00}.ob b{color:#6b4600}
+.ex{background:#EEE;border-color:#5B6770}.ex b{color:#333}
+.ag{background:#fff}
+.arr{text-align:center;color:#5B6770;font-size:14px;margin:-4px 0 6px}
+</style></head><body><div class="w">
+<h1>OPC-OS — Sơ đồ container (C4 mức 2)</h1>
+<div class="row"><div class="zone"><div class="zt">Lớp biên</div><div class="bx">
+<div class="c"><b>Founder Console</b><span>Next.js PWA · Approval Inbox · Dashboard · Web Push</span></div>
+<div class="c"><b>Reverse Proxy</b><span>Caddy · TLS tự động · rate limit · IP allowlist cho /admin</span></div>
+<div class="c"><b>Ingestion Gateway</b><span>FastAPI · webhook (HMAC) · IMAP/Gmail push · form</span></div>
+</div></div></div>
+<div class="arr">▼ HTTPS / REST + SSE &nbsp;&nbsp;&nbsp; ▼ sự kiện chuẩn hóa (CloudEvents) → Redis Streams</div>
+<div class="row"><div class="zone" style="flex:3"><div class="zt">Lớp điều phối & thực thi</div>
+<div class="bx">
+<div class="c"><b>Core API</b><span>FastAPI · task, approval, agent config, báo cáo · RBAC</span></div>
+<div class="c"><b>Orchestrator</b><span>Chief-of-Staff agent · LangGraph · lập kế hoạch, chia task, tổng hợp</span></div>
+<div class="c"><b>Scheduler</b><span>APScheduler · bản tin ngày, báo cáo, job định kỳ</span></div>
+<div class="c"><b>Workflow Engine</b><span>n8n queue mode · việc xác định, tích hợp SaaS</span></div>
+</div>
+<div class="bx" style="margin-top:10px">
+<div class="c ag"><b>Marketing</b><span>agent worker</span></div><div class="c ag"><b>Sales</b><span>agent worker</span></div><div class="c ag"><b>CSKH</b><span>agent worker</span></div><div class="c ag"><b>Dev</b><span>coding agent (sandbox)</span></div><div class="c ag"><b>Finance</b><span>agent worker</span></div><div class="c ag"><b>Research</b><span>agent worker</span></div>
+</div></div>
+<div class="zone" style="flex:1.25"><div class="zt">Dịch vụ dùng chung (guardrail)</div><div class="bx" style="flex-direction:column">
+<div class="c"><b>Policy & Approval</b><span>OPA/Rego · autonomy L0–L3 · hạn mức</span></div>
+<div class="c"><b>MCP Gateway</b><span>tool registry · scoped token · audit</span></div>
+<div class="c"><b>LLM Gateway</b><span>LiteLLM · routing · fallback · budget · cache</span></div>
+<div class="c"><b>Knowledge Service</b><span>Docling/MarkItDown ingest · hybrid search</span></div>
+</div></div></div>
+<div class="arr">▼ SQL · stream · object · secret &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼ OTLP (trace/metric/log)</div>
+<div class="row"><div class="zone"><div class="zt">Lớp dữ liệu</div><div class="bx">
+<div class="c db"><b>PostgreSQL 16</b><span>nghiệp vụ · task · audit · pgvector</span></div>
+<div class="c db"><b>Redis 7</b><span>Streams · cache · lock · rate limit</span></div>
+<div class="c db"><b>MinIO / S3</b><span>tài liệu gốc · đính kèm · backup</span></div>
+<div class="c db"><b>Secrets</b><span>Infisical / Vault</span></div>
+</div></div>
+<div class="zone" style="flex:.8"><div class="zt">Quan sát</div><div class="bx">
+<div class="c ob"><b>OTel Collector</b><span>thu thập</span></div>
+<div class="c ob"><b>Langfuse</b><span>LLM trace · eval</span></div>
+<div class="c ob"><b>Grafana stack</b><span>Prometheus · Loki</span></div>
+</div></div></div>
+<div class="arr">▼ HTTPS / MCP / API</div>
+<div class="row"><div class="zone"><div class="zt">Hệ thống ngoài</div><div class="bx">
+<div class="c ex"><b>LLM providers</b><span>Claude · GPT · Gemini · vLLM local</span></div>
+<div class="c ex"><b>Email & Lịch</b><span>Google Workspace / M365</span></div>
+<div class="c ex"><b>CRM · Help desk · CMS</b><span>HubSpot · Crisp · Ghost/WordPress</span></div>
+<div class="c ex"><b>Thanh toán · HĐĐT</b><span>PayOS/VNPay · ngân hàng · nhà cung cấp HĐĐT</span></div>
+<div class="c ex"><b>GitHub</b><span>repo · Actions · PR</span></div>
+<div class="c ex"><b>Web</b><span>Firecrawl/Crawl4AI · browser-use</span></div>
+</div></div></div>
+</div></body></html>

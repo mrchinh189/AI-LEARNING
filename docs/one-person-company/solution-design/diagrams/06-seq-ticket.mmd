@@ -1,0 +1,26 @@
+sequenceDiagram
+  autonumber
+  participant U as Khách hàng
+  participant H as Help desk
+  participant N as n8n
+  participant A as CSKH Agent
+  participant K as Knowledge Service
+  participant L as LLM Gateway
+  participant P as Policy Service
+  U->>H: Gửi câu hỏi / khiếu nại
+  H->>N: webhook ticket.created
+  N->>N: Gắn nhãn sơ bộ, tra đơn hàng
+  N->>A: enqueue task support.reply
+  A->>K: search(query, filters=public)
+  K-->>A: top-k đoạn tài liệu + nguồn
+  A->>L: generate(reply, JSON schema)
+  L-->>A: reply, confidence, category, needs_human
+  A->>P: check(action=ticket.reply, confidence, category)
+  alt confidence ≥ 0.8 và không thuộc nhóm nhạy cảm
+    P-->>A: allow
+    A->>H: Gửi phản hồi + đóng/giữ ticket
+  else Hoàn tiền / pháp lý / khách giận / confidence thấp
+    P-->>A: escalate
+    A->>H: Ghi chú nội bộ + gán Founder
+  end
+  A->>A: Ghi AGENT_RUN, TOOL_CALL, trace

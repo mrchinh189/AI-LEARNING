@@ -1,0 +1,22 @@
+flowchart LR
+  founder(["👤 Founder<br/>(chủ sở hữu duy nhất)"])
+  customer(["👥 Khách hàng /<br/>Lead"])
+  contractor(["🧑‍💻 Contractor<br/>(theo việc)"])
+  subgraph SYS["OPC-OS — Nền tảng vận hành One Person Company"]
+    core["Agent Runtime · Workflow · Policy & Approval<br/>Knowledge · Data · Observability"]
+  end
+  llm["LLM Providers<br/>(Claude, GPT, Gemini, model local)"]
+  saas["SaaS nghiệp vụ<br/>Email · Lịch · CRM · Help desk · CMS"]
+  pay["Thanh toán & Hóa đơn<br/>Cổng TT · Ngân hàng · HĐĐT"]
+  git["GitHub / CI-CD"]
+  web["Internet<br/>(website, mạng xã hội)"]
+  founder -- "Mục tiêu, duyệt, cấu hình" --> SYS
+  SYS -- "Bản tin, yêu cầu duyệt, cảnh báo" --> founder
+  customer -- "Email, chat, form, thanh toán" --> SYS
+  SYS -- "Phản hồi, nội dung, hóa đơn" --> customer
+  contractor -- "Nhận/giao việc" --> SYS
+  SYS <--> llm
+  SYS <--> saas
+  SYS <--> pay
+  SYS <--> git
+  SYS -- "Crawl, browser agent, đăng bài" --> web
