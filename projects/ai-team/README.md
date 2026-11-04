@@ -2,6 +2,8 @@
 
 Prototype hiện thực hoá các nguyên tắc trong ghi chú [Tư duy xây "đội AI Agents"](../../docs/video-notes/xay-doi-ai-agents-grokbot.md): thay vì chat với AI từng việc lẻ, người vận hành có **một đội bot** — mỗi bot có tên, vai trò, trí nhớ riêng — do một bot quản lý điều phối, tự kiểm tra bài trước khi nộp, và chỉ được làm việc rủi ro khi người duyệt.
 
+Tài liệu thiết kế kỹ thuật chi tiết (Word): [`docs/thiet-ke-ky-thuat-ai-team.docx`](docs/thiet-ke-ky-thuat-ai-team.docx).
+
 Viết bằng Python trên [Anthropic Python SDK](https://github.com/anthropics/anthropic-sdk-python) (model mặc định `claude-opus-5-5`), không dùng framework agent nào khác để logic phối hợp hiện rõ trong chưa đến 1.000 dòng code.
 
 ## 1. Ánh xạ nguyên tắc → cơ chế
