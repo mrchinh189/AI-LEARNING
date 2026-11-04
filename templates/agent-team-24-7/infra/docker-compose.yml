@@ -1,0 +1,39 @@
+# Một VPS 4 vCPU / 8 GB là đủ cho MVP. Tăng `worker` replicas khi cần.
+services:
+  gateway:
+    build: { context: .., dockerfile: infra/Dockerfile }
+    command: python main.py gateway
+    env_file: ../.env
+    depends_on: [postgres, redis]
+    restart: unless-stopped
+  heartbeat:
+    build: { context: .., dockerfile: infra/Dockerfile }
+    command: python main.py heartbeat
+    env_file: ../.env
+    depends_on: [postgres, redis]
+    restart: unless-stopped
+  worker:
+    build: { context: .., dockerfile: infra/Dockerfile }
+    command: python main.py worker
+    env_file: ../.env
+    depends_on: [postgres, redis]
+    restart: unless-stopped
+    deploy: { replicas: 2 }
+  watchdog:
+    build: { context: .., dockerfile: infra/Dockerfile }
+    command: python main.py watchdog
+    env_file: ../.env
+    depends_on: [postgres]
+    restart: unless-stopped
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment: { POSTGRES_USER: agent, POSTGRES_PASSWORD: agent, POSTGRES_DB: agentteam }
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../board/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+volumes:
+  pgdata:

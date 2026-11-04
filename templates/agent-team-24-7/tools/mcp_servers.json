@@ -1,0 +1,9 @@
+{
+  "_comment": "Khai báo MCP server cho agent. Mỗi agent chỉ được dùng tool có trong registry.yaml.",
+  "mcpServers": {
+    "web": { "command": "npx", "args": ["-y", "<mcp-server-web-search>"], "env": { "API_KEY": "${WEB_SEARCH_API_KEY}" } },
+    "gmail": { "url": "<https://mcp-server-gmail>", "transport": "http" },
+    "sheets": { "url": "<https://mcp-server-sheets>", "transport": "http" },
+    "github": { "url": "<https://mcp-server-github>", "transport": "http" }
+  }
+}

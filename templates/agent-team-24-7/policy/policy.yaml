@@ -1,0 +1,13 @@
+# Hành động bắt buộc người duyệt qua chat
+require_approval:
+  - email.send_external
+  - social.publish
+  - payment.*
+  - db.delete
+  - git.merge
+# Tool bị cấm hoàn toàn
+deny:
+  - shell.host            # chỉ được chạy lệnh trong sandbox
+limits:
+  max_steps_per_task: 30
+  max_tasks_per_goal: 50
