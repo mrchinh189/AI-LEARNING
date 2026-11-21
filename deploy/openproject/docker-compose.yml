@@ -1,0 +1,118 @@
+# OpenProject cho nhóm nhỏ: Postgres + Memcached + web/worker/cron + Caddy.
+# Dựa trên https://github.com/opf/openproject-docker-compose (nhánh stable/17).
+
+name: openproject
+
+volumes:
+  pgdata:
+  opdata:
+  caddy_data:
+
+networks:
+  frontend:
+  backend:
+
+x-restart: &restart
+  restart: unless-stopped
+
+x-op-app: &app
+  <<: *restart
+  image: team-openproject:${TAG:-17}
+  environment:
+    OPENPROJECT_HTTPS: "${OPENPROJECT_HTTPS:-false}"
+    OPENPROJECT_HOST__NAME: "${OPENPROJECT_HOST__NAME:-localhost:8080}"
+    OPENPROJECT_ADDITIONAL__HOST__NAMES: "web"
+    OPENPROJECT_HSTS: "${OPENPROJECT_HTTPS:-false}"
+    OPENPROJECT_DEFAULT__LANGUAGE: "${OPENPROJECT_DEFAULT__LANGUAGE:-vi}"
+    OPENPROJECT_RAILS__CACHE__STORE: "memcache"
+    OPENPROJECT_CACHE__MEMCACHE__SERVER: "cache:11211"
+    OPENPROJECT_COLLABORATIVE__EDITING__HOCUSPOCUS__URL: "${COLLABORATIVE_SERVER_URL:-ws://localhost:8080/hocuspocus}"
+    OPENPROJECT_COLLABORATIVE__EDITING__HOCUSPOCUS__SECRET: "${COLLABORATIVE_SERVER_SECRET:?Hay dat COLLABORATIVE_SERVER_SECRET trong .env}"
+    DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD:?Hay dat POSTGRES_PASSWORD trong .env}@db/openproject?pool=20&encoding=unicode&reconnect=true"
+    RAILS_MIN_THREADS: 4
+    RAILS_MAX_THREADS: 16
+    IMAP_ENABLED: "false"
+    SECRET_KEY_BASE: "${SECRET_KEY_BASE:?Hay dat SECRET_KEY_BASE trong .env}"
+  volumes:
+    - "opdata:/var/openproject/assets"
+
+services:
+  db:
+    <<: *restart
+    image: postgres:17
+    stop_grace_period: 30s
+    environment:
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: openproject
+    volumes:
+      - "pgdata:/var/lib/postgresql/data"
+    networks: [backend]
+
+  cache:
+    <<: *restart
+    image: memcached:1.6
+    networks: [backend]
+
+  # Chạy migration + seed mỗi lần khởi động/cập nhật rồi thoát.
+  seeder:
+    <<: *app
+    build:
+      context: .
+      args:
+        OP_VERSION: "${TAG:-17}"
+    command: "./docker/prod/seeder"
+    restart: on-failure
+    depends_on: [db, cache]
+    networks: [backend]
+
+  web:
+    <<: *app
+    command: "./docker/prod/web"
+    depends_on:
+      db: { condition: service_started }
+      cache: { condition: service_started }
+      seeder: { condition: service_completed_successfully }
+    networks: [frontend, backend]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health_checks/default"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
+
+  worker:
+    <<: *app
+    command: "./docker/prod/worker"
+    depends_on:
+      seeder: { condition: service_completed_successfully }
+    networks: [backend]
+
+  cron:
+    <<: *app
+    command: "./docker/prod/cron"
+    depends_on:
+      seeder: { condition: service_completed_successfully }
+    networks: [backend]
+
+  hocuspocus:
+    <<: *restart
+    image: openproject/hocuspocus:${HOCUSPOCUS_TAG:-17.8.3}
+    environment:
+      SECRET: "${COLLABORATIVE_SERVER_SECRET}"
+      OPENPROJECT_URL: "http://web:8080"
+      OPENPROJECT_HTTPS: "${OPENPROJECT_HTTPS:-false}"
+    networks: [frontend, backend]
+
+  proxy:
+    <<: *restart
+    image: caddy:2
+    environment:
+      SITE_ADDRESS: "${SITE_ADDRESS:-:80}"
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+      - "${HTTPS_PORT:-8443}:443"
+    volumes:
+      - "./Caddyfile:/etc/caddy/Caddyfile:ro"
+      - "caddy_data:/data"
+    depends_on: [web]
+    networks: [frontend]

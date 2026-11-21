@@ -1,0 +1,4 @@
+en:
+  plugin_openproject_team_extensions:
+    name: "Team extensions"
+    description: "Custom features for our team."

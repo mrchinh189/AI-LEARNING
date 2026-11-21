@@ -1,0 +1,12 @@
+# SITE_ADDRESS=":80"            -> chạy HTTP (mặc định)
+# SITE_ADDRESS="pm.congty.vn"   -> Caddy tự xin chứng chỉ HTTPS (Let's Encrypt)
+{$SITE_ADDRESS::80} {
+	reverse_proxy /hocuspocus* hocuspocus:1234
+
+	reverse_proxy * http://web:8080 {
+		header_up X-Forwarded-Proto {header.X-Forwarded-Proto}
+		header_up X-Forwarded-For {header.X-Forwarded-For}
+	}
+
+	log
+}
