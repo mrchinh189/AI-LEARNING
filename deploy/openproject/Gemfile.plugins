@@ -1,0 +1,8 @@
+# Khai báo các plugin cần cài vào OpenProject.
+# Plugin nội bộ nằm trong ./plugins sẽ được copy vào /app/vendor/plugins trong image.
+group :opf_plugins do
+  gem "openproject-team_extensions", path: "/app/vendor/plugins/openproject-team_extensions"
+
+  # Plugin bên ngoài, ví dụ:
+  # gem "openproject-slack", git: "https://github.com/opf/openproject-slack.git", branch: "dev"
+end

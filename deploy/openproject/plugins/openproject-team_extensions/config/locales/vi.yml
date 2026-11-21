@@ -1,0 +1,4 @@
+vi:
+  plugin_openproject_team_extensions:
+    name: "Tiện ích của nhóm"
+    description: "Các tính năng bổ sung riêng của nhóm."
